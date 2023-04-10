@@ -10,7 +10,6 @@ export default () => {
       enableSceneReloading: true,
       scenes: [
          { name: "bbCoaching"         , path: "./bbCoaching.js"       },
-         { name: "testing"            , path: "./bbCoaching2.js"       },
           /*
          { name: "DemoSimplest"       , path: "./demoSimplest.js"       },
          { name: "DemoShapes"         , path: "./demoShapes.js"         },
