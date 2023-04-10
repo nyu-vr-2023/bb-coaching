@@ -11,7 +11,7 @@ class Player {
         global.gltfRoot.addNode(this.node);
         this.position = null
         this.direction = 0
-        
+
     }
     update() {
         if (this.position) {
@@ -26,10 +26,12 @@ class Court {
         global.gltfRoot.addNode(this.node);
         this.position = null;
         this.direction = 0;
+        this.playerList = [];
     }
 
     addPlayer(player){
-
+        this.node.addNode(player);
+        this.playerList.push(player);
     }
 }
 
@@ -40,14 +42,14 @@ export const init = async model => {
     model.setRoom(false)
     let currCourt = new Court('./media/gltf/bbCourt/scene.gltf')
     let playerList = []
-    const numPlayers = 5
+    const numPlayers = 1
     for (let i = 0; i < numPlayers; i++) {
-        playerList.push(new Player("./media/gltf/Basketball_Player/Basketball_Player.gltf"))
+        // playerList.push(new Player("./media/gltf/Basketball_Player/Basketball_Player.gltf"))
+        currCourt.addPlayer(new Player("./media/gltf/Basketball_Player/Basketball_Player.gltf"))
     }
     model.animate(() => {
-        for (let i = 0; i < numPlayers; i++) {
-            playerList[i].update()
-        }
+        // for (let i = 0; i < numPlayers; i++) {
+        //     playerList[i].update()
+        // }
     });
 }
-
