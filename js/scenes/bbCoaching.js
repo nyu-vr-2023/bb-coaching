@@ -106,7 +106,7 @@ export const init = async model => {
 
     let fieldMap = boardBase.add('cube').texture('../media/textures/field.png');
 
-    tacticBoard.identity().scale(.6, .6, .0001);
+    tacticBoard.identity().scale(.6, .6, .0001).opacity(0);
     fieldMap.identity().move(-0.24, -0.035, 0.0002).scale(.46, .51, .0001).opacity(0.2);
 
     model.animate(() => {
