@@ -6,8 +6,8 @@ import {buttonState, joyStickState} from "../render/core/controllerInput.js";
 import {COLORS, MAX_TIME} from "./const.js";
 import {resampleCurve} from "../render/core/cg.js";
 
-
-let hudIsShown = true;      // press right[1] to show hud, press again to hide it
+let currTime = 0
+let hudIsShown = false;      // press right[1] to show hud, press again to hide it
 let hudButtonLock = false;
 let hudButtonHandler = () => {
     if (buttonState.right[1] && buttonState.right[1].pressed && !hudButtonLock) {
@@ -19,6 +19,8 @@ let hudButtonHandler = () => {
         hudButtonLock = false;
     }
 }
+
+let initialPosList = [[-.6, .4, 0], [.6, .4, 0], [-.9, .9, 0], [.3, .7, 0], [.9, .9, 0]]
 
 class Player {
     constructor(gltfUrl, index, initialPosition, c) {
@@ -60,8 +62,6 @@ class Player {
     }
 
     update(t) {
-        // console.log("directions:", this.directions)
-        // console.log("positions:", this.positions)
         this.node.matrix = cg.mMultiply(cg.mTranslate(this.positions[t][0] * Court.width, this.positions[t][2], -this.positions[t][1] * Court.height), cg.mRotateY(this.directions[t]))
     }
 }
@@ -81,16 +81,18 @@ class Court {
     }
 }
 
+
 export const init = async model => {
     model.setTable(false)
     model.setRoom(false)
-    let currTime = 0
     let currCourt = new Court('./media/gltf/bbCourt/scene.gltf')
     let playerList = []
+    let playerBoardList = []
     const numPlayers = 5
     for (let i = 0; i < numPlayers; i++) {
-        playerList.push(new Player("./media/gltf/Basketball_Player/Basketball_Player.gltf", i, [1., (i - 2) * .2, 0], COLORS[i]));
+        playerList.push(new Player("./media/gltf/Basketball_Player/Basketball_Player.gltf", i, initialPosList[i], COLORS[i]));
     }
+
 
     let boardBase = model.add()
 
@@ -140,30 +142,37 @@ export const init = async model => {
     tacticBoard.startTime = -1;                                                 //starting time of the player
     tacticBoard.endTime = -1;                                                   //ending time of the player
     tacticBoard.started_setting = false;                                        //record if have started the time count or not
+    tacticBoard.isPlayerBoard = false;
+
+
 
     g2.addTrackpad(tacticBoard, .25, .47, '#ff8080', ' ', () => {
     }, 1, playerList, tacticBoard);
     for (let i = 0; i < numPlayers; i++) {
         g2.addWidget(tacticBoard, 'button', .65, .12 + i * .14, COLORS[i], '#' + i, () => {
-            if (tacticBoard.currPlayer !== i) {
-                tacticBoard.currPlayer = i;
-                // reset the status of tacticBoard.
-                tacticBoard.startTime = -1;
-                tacticBoard.endTime = -1;
-                tacticBoard.started_setting = false;
-            } else {
-                let player = playerList[tacticBoard.currPlayer];
-                tacticBoard.currPlayer = -1;
-                const [start, end] = player.getStartAndEnd();
-                // const src = [player.pos3D(start), player.pos3D(end)]
-                const line = cg.resampleCurve([player.pos3D(start), player.pos3D(end)], end - start)
-                console.log("line:", line)
-                for (let i = 0; i < end - start; i++) {
-                    for (let j = 0; j < 3; j++) {
-                        player.positions[start + i][j] = line[i][j]
-                    }
-                }
-            }
+            boardBase._children = []
+            boardBase._children.push(playerBoardList[i])
+            boardBase._children.push(fieldMap)
+            tacticBoard.currPlayer = i;
+            // if (tacticBoard.currPlayer !== i) {
+            //     tacticBoard.currPlayer = i;
+            //     // reset the status of tacticBoard.
+            //     tacticBoard.startTime = -1;
+            //     tacticBoard.endTime = -1;
+            //     tacticBoard.started_setting = false;
+            // } else {
+            //     let player = playerList[tacticBoard.currPlayer];
+            //     tacticBoard.currPlayer = -1;
+            //     const [start, end] = player.getStartAndEnd();
+            //     // const src = [player.pos3D(start), player.pos3D(end)]
+            //     const line = cg.resampleCurve([player.pos3D(start), player.pos3D(end)], end - start)
+            //     console.log("line:", line)
+            //     for (let i = 0; i < end - start; i++) {
+            //         for (let j = 0; j < 3; j++) {
+            //             player.positions[start + i][j] = line[i][j]
+            //         }
+            //     }
+            // }
         }, 0.9);
     }
 
@@ -194,6 +203,7 @@ export const init = async model => {
                     }
                 }
             }
+
             tacticBoard.started_setting = !tacticBoard.started_setting;
         }, 0.36));
     }
@@ -205,30 +215,112 @@ export const init = async model => {
 
     // update the color of each time button based on the player and time frame selected
     let updateTimeButton = () => {
-        if (tacticBoard.currPlayer === -1) {
-            for (let j = 0; j < 24; j++) {
-                tacticBoard.timeButton[j].updateColor('#a0aaba');
-            }
-        } else {
-            for (let j = 0; j < 24; j++) {
-                if (playerList[tacticBoard.currPlayer].isMoving[j]) {
-                    tacticBoard.timeButton[j].updateColor(COLORS[tacticBoard.currPlayer]);
-                } else {
-                    tacticBoard.timeButton[j].updateColor('#a0aaba');
-                }
+        let currBoard = boardBase._children[0];
+        for (let j = 0; j < 24; j++) {
+            if (playerList[tacticBoard.currPlayer].isMoving[j]) {
+                currBoard.timeButton[j].updateColor(COLORS[tacticBoard.currPlayer]);
+            } else {
+                currBoard.timeButton[j].updateColor('#a0aaba');
             }
         }
     }
 
+
+    for (let i = 0; i <  numPlayers; i++){                                                          //create player board
+        let playerBoard = boardBase.add('cube').texture(() => {
+            g2.setColor('white');
+            g2.fillRect(0, 0, 1, 1);
+            g2.textHeight(.04)
+            g2.setColor('blue');
+            g2.setColor('black');
+            g2.textHeight(.03);
+            g2.textHeight(.05);
+            g2.fillText('Player' + i + 'Board', .5, .95, 'center');
+
+            // draw timeButton label
+            g2.textHeight(.03);
+            g2.fillText('↑', .51, .865, 'center');
+            g2.fillText('0s', .51, .84, 'center');
+            g2.fillText('↑', .961, .865, 'center');
+            g2.fillText('23s', .961, .84, 'center');
+            g2.fillText('-- Time Frames --', .72, .85, 'center');
+            g2.drawWidgets(playerBoard);
+        });
+        playerBoard.currPlayer = -1;                                                 // the player index in the playerBoard.
+        playerBoard.timeButton = [];                                                //array used to store the time button widgets
+        playerBoard.moveButton = [];
+        playerBoard.startTime = -1;                                                 //starting time of the player
+        playerBoard.endTime = -1;                                                   //ending time of the player
+        playerBoard.started_setting = false;                                        //record if have started the time count or not
+        playerBoard.movements = 0;
+        playerBoard.isPlayerBoard = true;
+
+        playerBoard.identity().scale(.9, .9, .0001).opacity(0);
+        for (let k = 0; k < 24; k++) {
+            playerBoard.timeButton.push(g2.addWidget(playerBoard, 'button', .51 + k * .018, .90, '#a0aaba', " ", () => {
+                currTime = k;
+                if (playerBoard.currPlayer != -1){
+                    let player = playerList[tacticBoard.currPlayer];
+                    if (!tacticBoard.started_setting) {
+                        for (let j = 0; j < 24; j++) {
+                            player.isMoving[j] = false;
+                            player.positions[j] = Array.from(player.initialPosition);
+                        }
+                        player.isMoving[k] = true;
+                        tacticBoard.startTime = k;
+                        tacticBoard.endTime = -1;
+                    } else {
+                        tacticBoard.endTime = k;
+                        if (tacticBoard.endTime <= tacticBoard.startTime) {
+                            player.isMoving[tacticBoard.startTime] = false;
+                            tacticBoard.startTime = -1;
+                            tacticBoard.endTime = -1;
+                            for (let j = 0; j < 24; j++) {
+                                player.positions[j] = Array.from(player.initialPosition);
+                            }
+                        } else {
+                            for (let j = tacticBoard.startTime + 1; j <= tacticBoard.endTime; j++) {
+                                player.isMoving[j] = true;
+                            }
+                        }
+                    }
+                    tacticBoard.started_setting = !tacticBoard.started_setting;
+                }
+            }, 0.36));
+        }
+        g2.addWidget(playerBoard, 'button', .75, .2, '#0cdfe0', "RETURN", () => {
+            boardBase._children = []
+            boardBase._children.push(tacticBoard)
+            boardBase._children.push(fieldMap)
+        }, 0.9);
+        g2.addWidget(playerBoard, 'button', .75, .78, '#d965bb', "ADD MOVEMENT", () => {
+            playerBoard.currPlayer = i;
+        }, 0.6)
+
+        g2.addWidget(playerBoard, 'button', .6, .68, '#a0aaba', "initial POS", () => {
+
+        }, 0.6)
+
+        for (let j = 1; j < 5; j++){
+            playerBoard.moveButton.push(g2.addWidget(playerBoard, 'button', .6, .68 - 0.08 * j, '#a0aaba', "move " + j, () => {}, 0.6));
+        }
+        g2.addTrackpad(playerBoard, .25, .47, '#ff8080', ' ', () => {
+        }, 1, playerList, playerBoard);
+        playerBoardList.push(playerBoard);
+    }
+
     model.animate(() => {
         boardBase.identity().boardHud().scale(1.3);
-        updateTimeButton();
+
         hudButtonHandler();
 
         if (hudIsShown) {
             if (boardBase._children.length === 0) {
                 boardBase._children.push(tacticBoard)
                 boardBase._children.push(fieldMap)
+            }
+            else{
+                updateTimeButton();
             }
             // console.log("tacticBoard.currPlayer:", tacticBoard.currPlayer)
             // console.log("playerList[tacticBoard.currPlayer].getStartAndEnd():", playerList[tacticBoard.currPlayer].getStartAndEnd())
@@ -238,7 +330,8 @@ export const init = async model => {
                     playerList[tacticBoard.currPlayer].directions[end] += 2 * model.deltaTime * joyStickState.right.x
                 }
             }
-        } else {
+        }
+        else{
             boardBase._children = [];
         }
 

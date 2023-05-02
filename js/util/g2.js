@@ -136,7 +136,7 @@ function G2() {
             // drawWidgetOutline(x, y, w, h, isPressed);
         }
 
-        this.updateColor = (newColor) => {                  //update the color of the current button
+        this.updateColor = (newColor) => {                  //update the color of the current buttona
             color = newColor;
         }
     }
@@ -279,7 +279,7 @@ function G2() {
         this.handleEvent = () => {
             let uvz = g2.getUVZ_R(obj);
             if (uvz && tacticBoard.currPlayer != -1) {
-                // Determine postion in which time point (start or end) is changing.
+                // Determine position in which time point (start or end) is changing.
                 if (!tacticBoard.started_setting && tacticBoard.endTime != -1) {
                     pList[tacticBoard.currPlayer].positions[tacticBoard.endTime][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
                     pList[tacticBoard.currPlayer].positions[tacticBoard.endTime][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;    
