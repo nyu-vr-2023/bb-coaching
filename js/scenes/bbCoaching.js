@@ -232,7 +232,6 @@ export const init = async model => {
             }, 0.36));
         }
         g2.addWidget(playerBoard, 'button', .75, .2, '#0cdfe0', "RETURN", () => {
-
             boardBase._children = [tacticBoard, fieldMap]
             playerBoard.visible = false;
             tacticBoard.visible = true;

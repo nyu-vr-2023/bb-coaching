@@ -70,20 +70,19 @@ function G2() {
         }
         this.handleEvent = () => {
             if (tacticBoard.visible){
-                console.log("Current Player ID in bbCoachingTrackpad:" + tacticBoard.ID)
+                console.log("Dragging from bbCoachingTrackpad ID:" + tacticBoard.ID)
                 let uvz = g2.getUVZ_R(obj);
                 let player = pList[tacticBoard.ID]
                 if (uvz && tacticBoard.ID != -1 ) {
                     // Determine position in which time point (start or end) is changing.
-
-                    if (tacticBoard.startTime != -1) {
+                    if (tacticBoard.timeStart != -1) {
                         console.log("Can start dragging")
-                        player.positions[tacticBoard.startTime][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
-                        player.positions[tacticBoard.startTime][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
+                        player.positions[tacticBoard.timeStart][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
+                        player.positions[tacticBoard.timeStart][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
                     }
-                    else if (tacticBoard.endTime != -1) {
-                        player.positions[tacticBoard.endTime][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
-                        player.positions[tacticBoard.endTime][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
+                    else if (tacticBoard.timeEnd != -1) {
+                        player.positions[tacticBoard.timeEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
+                        player.positions[tacticBoard.timeEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
                     }
                     if (action && mouseState == 'drag')
                         action();
@@ -161,7 +160,7 @@ function G2() {
             for (let n = 0; n < widgets.length; n++)
                 if (widgets[n].isWithin()) {
                     let uvz = this.getUVZ(widgets[n].obj);
-                    if (uvz && uvz[2] < nearestZ) {
+                    if (uvz && uvz[2] < nearestZ && widgets[n].obj.visible) {
                         activeWidget = widgets[n];
                         nearestZ = uvz[2];
                     }
@@ -204,7 +203,7 @@ function G2() {
         }
         this.handleEvent = () => {
             if (this.obj.visible){
-                console.log("I clicked button")
+                console.log("I clicked button from id:" + obj.ID)
                 if (action && mouseState == 'release' && this.isWithin()) {
                     action();
                     activeWidget = null;
