@@ -81,9 +81,6 @@ class Court {
     }
 }
 
-class States {
-    let currentPlayer = -1
-}
 
 export const init = async model => {
     model.setTable(false)
@@ -132,6 +129,8 @@ export const init = async model => {
 
     tacticBoard.timeButton = [];                                                //array of size 24 used to store the time button widgets
     tacticBoard.isPlayerBoard = false;
+    tacticBoard.visible = false;
+    tacticBoard.ID = -1;
 
     // add trackpad
     g2.addTrackpad(tacticBoard, .25, .47, '#ff8080', ' ', () => {
@@ -140,7 +139,10 @@ export const init = async model => {
     // add buttons for all players
     for (let i = 0; i < numPlayers; i++) {
         g2.addWidget(tacticBoard, 'button', .65, .12 + i * .14, COLORS[i], '#' + i, () => {
+            tacticBoard.visible = false
+            playerBoardList[i].visible = true
             boardBase._children = [playerBoardList[i], fieldMap]
+            console.log("PlayerBoard visible:" + playerBoardList[i].visible)
             currentPlayer = i;
         }, 0.9);
     }
@@ -190,47 +192,59 @@ export const init = async model => {
         });
 
         playerBoardList.push(playerBoard);
+
         playerBoard.timeButton = [];                                                //array used to store the time button widgets
         playerBoard.moveButton = [];
         playerBoard.currentEditingMovement = -1;
-        playerBoard.timeStart = -1;                                        //-1 if setting start time; start time if setting end time; assert currentEditingMovement !== -1
+        playerBoard.startEditingMovement = false;
+        playerBoard.timeStart = -1;                                        //-1 if haven't set start time; start time if setting end time; assert currentEditingMovement !== -1
+        playerBoard.timeEnd = -1;                                          //-1 if haven't set end time;
         playerBoard.isPlayerBoard = true;
+        playerBoard.ID = i;
+        playerBoard.visible = false;
 
         playerBoard.identity().scale(.9, .9, .0001).opacity(0);
 
-        // Add timebuttons for the player i
+        // Add time buttons for the player i
         for (let k = 0; k < 24; k++) {
             playerBoard.timeButton.push(g2.addWidget(playerBoard, 'button', .51 + k * .018, .90, '#a0aaba', " ", () => {
                 currTime = k;
-                console.log("i: ", i)
+                // console.log("i: ", i)
                 // console.assert(currentPlayer === i)
-                if (currentPlayer.currentEditingMovement !== -1) {
-                    console.log("time button clicked")
-                    console.log("current player: ", currentPlayer)
-                    if (playerBoard.timeStart === -1) {
-                        console.log("Setting start time")
-                        console.log("playerBoard.timeStart:", playerBoard.timeStart)
+                if (playerBoard.startEditingMovement) {
+                    console.log(currentPlayer)
+                    if (playerBoard.timeStart === -1 && !playerList[currentPlayer].isMoving[currTime]) {
                         playerBoard.timeStart = currTime;
                         playerList[currentPlayer].isMoving[currTime] = true;
                         // playerBoard.timeButton[currTime].updateColor(COLORS[currentPlayer]);
-                    } else {
-                        console.log("Setting end time to:  ", currTime)
+                        playerBoard.timeEnd = -1;
+                    } else if (playerBoard.timeEnd === -1 && !playerList[currentPlayer].isMoving[currTime]){
+                        playerBoard.timeEnd = currTime;
                         for (let j = playerBoard.timeStart; j < currTime + 1; j++) {
                             playerList[currentPlayer].isMoving[j] = true;
                         }
+                        playerBoard.timeStart = -1;
+
+                        playerBoard.startEditingMovement = false;
                     }
                     updateTimeButtonInPlayerBoard()
                 }
             }, 0.36));
         }
         g2.addWidget(playerBoard, 'button', .75, .2, '#0cdfe0', "RETURN", () => {
+
             boardBase._children = [tacticBoard, fieldMap]
+            playerBoard.visible = false;
+            tacticBoard.visible = true;
+            playerBoard.currentEditingMovement = -1
             currentPlayer = -1
         }, 0.9);
 
         g2.addWidget(playerBoard, 'button', .75, .78, '#d965bb', "ADD MOVEMENT", () => {
-            console.log("Adding Movement")
-            playerBoard.currentEditingMovement = 0
+            // console.log("Adding Movement")
+            playerBoard.currentEditingMovement += 1
+            playerBoard.startEditingMovement = true
+
         }, 0.6)
 
         g2.addWidget(playerBoard, 'button', .6, .68, '#a0aaba', "initial POS", () => {}, 0.6)
@@ -252,11 +266,12 @@ export const init = async model => {
 
         if (HUDIsShown) {
             if (boardBase._children.length === 0) {
-                boardBase._children.push(tacticBoard)
-                boardBase._children.push(fieldMap)
+                boardBase._children = [tacticBoard, fieldMap]
+                tacticBoard.visible = true;
             }
         } else {
             boardBase._children = [];
+            tacticBoard.visible = false;
         }
         for (let i = 0; i < numPlayers; i++) {
             playerList[i].update(currTime)
