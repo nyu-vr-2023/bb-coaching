@@ -56,7 +56,7 @@ function G2() {
     }
 
     this.addTrackpad = (obj, x, y, color, label, action, size, pList, tacticBoard) => {
-        console.log("Current Player ID in trackPad:" + tacticBoard.ID)
+        // console.log("Current Player ID in trackPad:" + tacticBoard.ID)
         widgets.push(new bbCoachingTrackpad(obj, x, y, color, label, action, size, pList, tacticBoard));
     }
 
@@ -70,19 +70,25 @@ function G2() {
         }
         this.handleEvent = () => {
             if (tacticBoard.visible){
-                console.log("Dragging from bbCoachingTrackpad ID:" + tacticBoard.ID)
+                // console.log("Dragging from bbCoachingTrackpad ID:" + tacticBoard.ID)
                 let uvz = g2.getUVZ_R(obj);
                 let player = pList[tacticBoard.ID]
                 if (uvz && tacticBoard.ID != -1 ) {
                     // Determine position in which time point (start or end) is changing.
                     if (tacticBoard.timeStart != -1) {
-                        console.log("Can start dragging")
+                        // console.log("Can start dragging")
                         player.positions[tacticBoard.timeStart][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
                         player.positions[tacticBoard.timeStart][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
                     }
                     else if (tacticBoard.timeEnd != -1) {
                         player.positions[tacticBoard.timeEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
                         player.positions[tacticBoard.timeEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
+                        // console.log("end time at 5: " + 5 +"  end position at 5: " + player.positions[5])
+                        // console.log("Current end time: " + tacticBoard.timeEnd +"  Current end position: " + player.positions[tacticBoard.timeEnd])
+                        // for (let i = tacticBoard.timeEnd; i < 24; i++){
+                        //     player.positions[i][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
+                        //     player.positions[i][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
+                        // }
                     }
                     if (action && mouseState == 'drag')
                         action();
@@ -101,11 +107,11 @@ function G2() {
                 // Add code for direction drawing.
 
                 let player = pList[i];
-                let start = player.getStartAndEnd()[0];
-                let end = player.getStartAndEnd()[1];
+                let start = player.getStartTime();
+                let endList = player.getEndTimeList();
 
                 // if no point selected, draw the initial pos
-                if (start == 24) {
+                if (start == -1) {
                     let pos = player.initialPosition;
                     g2.setColor(player.color);
                     let posOnTrackPad = [x + w * pos[0] / 2, y + h * pos[1] / 2];
@@ -119,7 +125,8 @@ function G2() {
                     g2.setColor('black');
                     g2.textHeight(.025);
                     g2.fillText(start + '', posOnTrackPad[0], posOnTrackPad[1], 'center');
-                    if (start < end) {
+
+                    for (let end of endList) {
                         // if having end point, draw it with time as label
                         let pos2 = player.positions[end];
                         g2.setColor(player.color);
@@ -133,6 +140,7 @@ function G2() {
                         g2.setColor(player.color);
                         g2.lineWidth(.003);
                         g2.line(posOnTrackPad, pos2OnTrackPad);
+                        posOnTrackPad = pos2OnTrackPad
                     }
                 }
             }
@@ -203,7 +211,7 @@ function G2() {
         }
         this.handleEvent = () => {
             if (this.obj.visible){
-                console.log("I clicked button from id:" + obj.ID)
+                // console.log("I clicked button from id:" + obj.ID)
                 if (action && mouseState == 'release' && this.isWithin()) {
                     action();
                     activeWidget = null;

@@ -27,6 +27,7 @@ class Player {
         this.node = new Gltf2Node({url: gltfUrl});
         global.gltfRoot.addNode(this.node);
         this.initialPosition = initialPosition;
+        this.firstStartTime = -1;
         this.index = index;
         this.color = c;
         // store the position of each time frame for this player
@@ -34,24 +35,31 @@ class Player {
         this.directions = Array(24).fill(0);
         // check if a specific time frame is within a movement, and be used to find the start/end of a move.
         this.isMoving = Array(24).fill(false);
+
+        this.movingPeriods = [];                                                    //record the time period [startTime, endTime] with movements
     }
 
     // get the start and end time frame of the move
     // if no action selected return [24,23]
     // if start point selected but no end point return [s,s], s is the selected point.
     // if start and end both selected, return [s,e], s < e.
-    getStartAndEnd() {
-        let t = 0;
-        while (t < MAX_TIME && !this.isMoving[t]) {
-            t++;
-        }
-        let start = t;
-        while (t < MAX_TIME && this.isMoving[t]) {
-            t++;
-        }
-        let end = t - 1;
-        return [start, end];
+    getStartTime() {
+        return this.firstStartTime;
     }
+
+    getEndTimeList(){
+        let endList = [];
+
+        for (let movePeriod of this.movingPeriods){
+            endList.push(movePeriod[1]);
+            // console.log("end time: " + movePeriod[1] + " ending position: " + this.positions[movePeriod[1]])
+        }
+
+
+        return endList;
+    }
+
+
 
     pos3D(t) {
         return this.positions[t]
@@ -92,7 +100,6 @@ export const init = async model => {
     let playerList = []
     let playerBoardList = []
     const numPlayers = 5
-    let currentPlayer = -1                              // when no player selected, should be -1.
 
     for (let i = 0; i < numPlayers; i++) {
         playerList.push(new Player("./media/gltf/Basketball_Player/Basketball_Player.gltf", i, initialPosList[i], COLORS[i]));
@@ -103,17 +110,8 @@ export const init = async model => {
         g2.fillRect(0, 0, 1, 1);
         g2.textHeight(.04)
         g2.setColor('blue');
-        // g2.fillText('Moving Player: #' + (tacticBoard.currPlayer + 1), .75, .84, 'center');
         g2.setColor('black');
         g2.textHeight(.03);
-        for (let i = 0; i < playerList.length; i++) {
-            // mark the selected player
-            if (i === currentPlayer) {
-                g2.textHeight(.08);
-                g2.fillText('*', .55, .12 + i * .14, 'center');
-                g2.textHeight(.03);
-            }
-        }
         g2.textHeight(.05);
         g2.fillText('Tactic Board', .5, .95, 'center');
 
@@ -128,7 +126,6 @@ export const init = async model => {
     });
 
     tacticBoard.timeButton = [];                                                //array of size 24 used to store the time button widgets
-    tacticBoard.isPlayerBoard = false;
     tacticBoard.visible = false;
     tacticBoard.ID = -1;
 
@@ -142,8 +139,6 @@ export const init = async model => {
             tacticBoard.visible = false
             playerBoardList[i].visible = true
             boardBase._children = [playerBoardList[i], fieldMap]
-            console.log("PlayerBoard visible:" + playerBoardList[i].visible)
-            currentPlayer = i;
         }, 0.9);
     }
 
@@ -157,13 +152,10 @@ export const init = async model => {
 
     // update the color of each time button based on the player and time frame selected
     let updateTimeButtonInPlayerBoard = () => {
-        console.assert(currentPlayer !== -1)
         let currBoard = boardBase._children[0];
         for (let j = 0; j < 24; j++) {
-            // console.log("playerList: ", playerList)
-            // console.log("playerList[tacticBoard.currPlayer]: ", playerList[tacticBoard.currPlayer])
-            if (playerList[currentPlayer].isMoving[j]) {
-                currBoard.timeButton[j].updateColor(COLORS[currentPlayer]);
+            if (currBoard.ID != -1 && playerList[currBoard.ID].isMoving[j]) {
+                currBoard.timeButton[j].updateColor(COLORS[currBoard.ID]);
             } else {
                 currBoard.timeButton[j].updateColor('#a0aaba');
             }
@@ -171,6 +163,7 @@ export const init = async model => {
     }
 
     for (let i = 0; i < numPlayers; i++) {                                                          //create player board
+        let currPlayer = playerList[i];
         let playerBoard = boardBase.add('cube').texture(() => {
             g2.setColor('white');
             g2.fillRect(0, 0, 1, 1);
@@ -180,6 +173,12 @@ export const init = async model => {
             g2.textHeight(.03);
             g2.textHeight(.05);
             g2.fillText('Player' + i + 'Board', .5, .95, 'center');
+            //print initial position
+            let initialPos = 0
+            if (currPlayer.firstStartTime !== -1) {
+                initialPos = currPlayer.firstStartTime
+            }
+            g2.fillText( (currPlayer.positions[initialPos][0].toFixed(1)) + ',' + (currPlayer.positions[initialPos][1].toFixed(1)) , .9, .68, 'center');
 
             // draw timeButton label
             g2.textHeight(.03);
@@ -188,6 +187,7 @@ export const init = async model => {
             g2.fillText('↑', .961, .865, 'center');
             g2.fillText('23s', .961, .84, 'center');
             g2.fillText('-- Time Frames --', .72, .85, 'center');
+
             g2.drawWidgets(playerBoard);
         });
 
@@ -195,11 +195,9 @@ export const init = async model => {
 
         playerBoard.timeButton = [];                                                //array used to store the time button widgets
         playerBoard.moveButton = [];
-        playerBoard.currentEditingMovement = -1;
-        playerBoard.startEditingMovement = false;
-        playerBoard.timeStart = -1;                                        //-1 if haven't set start time; start time if setting end time; assert currentEditingMovement !== -1
+        playerBoard.startEditingMovement = false;                          // true by clicking add movement -> can create new movement
+        playerBoard.timeStart = -1;                                        //-1 if haven't set start time; start time if setting end time
         playerBoard.timeEnd = -1;                                          //-1 if haven't set end time;
-        playerBoard.isPlayerBoard = true;
         playerBoard.ID = i;
         playerBoard.visible = false;
 
@@ -209,23 +207,24 @@ export const init = async model => {
         for (let k = 0; k < 24; k++) {
             playerBoard.timeButton.push(g2.addWidget(playerBoard, 'button', .51 + k * .018, .90, '#a0aaba', " ", () => {
                 currTime = k;
-                // console.log("i: ", i)
-                // console.assert(currentPlayer === i)
                 if (playerBoard.startEditingMovement) {
-                    console.log(currentPlayer)
-                    if (playerBoard.timeStart === -1 && !playerList[currentPlayer].isMoving[currTime]) {
+                    if (playerBoard.timeStart === -1 && !currPlayer.isMoving[currTime]) {
+                        if (currPlayer.firstStartTime == -1){
+                            currPlayer.firstStartTime = currTime;
+                        }
                         playerBoard.timeStart = currTime;
-                        playerList[currentPlayer].isMoving[currTime] = true;
-                        // playerBoard.timeButton[currTime].updateColor(COLORS[currentPlayer]);
+                        currPlayer.isMoving[currTime] = true;
                         playerBoard.timeEnd = -1;
-                    } else if (playerBoard.timeEnd === -1 && !playerList[currentPlayer].isMoving[currTime]){
+                    }
+                    else if (playerBoard.timeEnd === -1 && !currPlayer.isMoving[currTime]){
                         playerBoard.timeEnd = currTime;
                         for (let j = playerBoard.timeStart; j < currTime + 1; j++) {
-                            playerList[currentPlayer].isMoving[j] = true;
+                            currPlayer.isMoving[j] = true;
                         }
+                        currPlayer.movingPeriods.push([playerBoard.timeStart, currTime]);
                         playerBoard.timeStart = -1;
-
                         playerBoard.startEditingMovement = false;
+
                     }
                     updateTimeButtonInPlayerBoard()
                 }
@@ -235,15 +234,10 @@ export const init = async model => {
             boardBase._children = [tacticBoard, fieldMap]
             playerBoard.visible = false;
             tacticBoard.visible = true;
-            playerBoard.currentEditingMovement = -1
-            currentPlayer = -1
         }, 0.9);
 
         g2.addWidget(playerBoard, 'button', .75, .78, '#d965bb', "ADD MOVEMENT", () => {
-            // console.log("Adding Movement")
-            playerBoard.currentEditingMovement += 1
             playerBoard.startEditingMovement = true
-
         }, 0.6)
 
         g2.addWidget(playerBoard, 'button', .6, .68, '#a0aaba', "initial POS", () => {}, 0.6)
@@ -256,9 +250,6 @@ export const init = async model => {
     }
 
     model.animate(() => {
-        // console.log("playerList:", playerList)
-        // console.log("tac: ", tacticBoard)
-        // console.log("currentPlayer:", currentPlayer)
         boardBase.identity().boardHud().scale(1.3);
 
         hudButtonHandler();
