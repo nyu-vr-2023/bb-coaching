@@ -9,6 +9,7 @@ import {resampleCurve} from "../render/core/cg.js";
 
 let hudIsShown = true;      // press right[1] to show hud, press again to hide it
 let hudButtonLock = false;
+let drawButtonLock = false;
 let hudButtonHandler = () => {
     if (buttonState.right[1] && buttonState.right[1].pressed && !hudButtonLock) {
         hudIsShown = !hudIsShown;
@@ -123,7 +124,11 @@ export const init = async model => {
             }
         }
         g2.textHeight(.05);
-        g2.fillText('Tactic Board', .5, .95, 'center');
+        if (!tacticBoard.drawMode) {
+            g2.fillText('Tactic Board', .5, .95, 'center');
+        } else {
+            g2.fillText('Tactic Board (Drawing Mode)', .5, .95, 'center');
+        }
 
         // draw timeButton label
         g2.textHeight(.03);
@@ -140,11 +145,15 @@ export const init = async model => {
     tacticBoard.startTime = -1;                                                 //starting time of the player
     tacticBoard.endTime = -1;                                                   //ending time of the player
     tacticBoard.started_setting = false;                                        //record if have started the time count or not
+    tacticBoard.path = []                                                       // temp storage for the current drawing path.
+    tacticBoard.drawMode = false;                                               //when drawMode is true, you can use beam to draw path for player
 
     g2.addTrackpad(tacticBoard, .25, .47, '#ff8080', ' ', () => {
     }, 1, playerList, tacticBoard);
     for (let i = 0; i < numPlayers; i++) {
         g2.addWidget(tacticBoard, 'button', .65, .12 + i * .14, COLORS[i], '#' + i, () => {
+            tacticBoard.path = []
+            tacticBoard.drawMode = false;
             if (tacticBoard.currPlayer !== i) {
                 tacticBoard.currPlayer = i;
                 // reset the status of tacticBoard.
@@ -154,15 +163,15 @@ export const init = async model => {
             } else {
                 let player = playerList[tacticBoard.currPlayer];
                 tacticBoard.currPlayer = -1;
-                const [start, end] = player.getStartAndEnd();
-                // const src = [player.pos3D(start), player.pos3D(end)]
-                const line = cg.resampleCurve([player.pos3D(start), player.pos3D(end)], end - start)
-                console.log("line:", line)
-                for (let i = 0; i < end - start; i++) {
-                    for (let j = 0; j < 3; j++) {
-                        player.positions[start + i][j] = line[i][j]
-                    }
-                }
+                // const [start, end] = player.getStartAndEnd();
+                // // const src = [player.pos3D(start), player.pos3D(end)]
+                // const line = cg.resampleCurve([player.pos3D(start), player.pos3D(end)], end - start)
+                // console.log("line:", line)
+                // for (let i = 0; i < end - start; i++) {
+                //     for (let j = 0; j < 3; j++) {
+                //         player.positions[start + i][j] = line[i][j]
+                //     }
+                // }
             }
         }, 0.9);
     }
@@ -220,10 +229,27 @@ export const init = async model => {
         }
     }
 
+    // handle the on/off of drawMode. Same logic as hudButtonHandler().
+    let drawButtonHandler = () => {
+        if (!tacticBoard.started_setting && tacticBoard.endTime != -1) {
+            if (buttonState.right[4] && buttonState.right[4].pressed && !drawButtonLock) {
+                tacticBoard.drawMode = !tacticBoard.drawMode;
+                drawButtonLock = true;
+            }
+        
+            if (buttonState.right[4] && !buttonState.right[4].pressed) {
+                drawButtonLock = false;
+            }
+        } else {
+            drawButtonLock = false;
+        }
+    }
+
     model.animate(() => {
         boardBase.identity().boardHud().scale(1.3);
         updateTimeButton();
         hudButtonHandler();
+        drawButtonHandler();
 
         if (hudIsShown) {
             if (boardBase._children.length === 0) {
