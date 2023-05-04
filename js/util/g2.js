@@ -55,12 +55,12 @@ function G2() {
         return widgets[widgets.length - 1];
     }
 
-    this.addTrackpad = (obj, x, y, color, label, action, size, pList, tacticBoard) => {
-        // console.log("Current Player ID in trackPad:" + tacticBoard.ID)
-        widgets.push(new bbCoachingTrackpad(obj, x, y, color, label, action, size, pList, tacticBoard));
+    this.addTrackpad = (obj, x, y, color, label, action, size, pList) => {
+        // console.log("Current Player ID in trackPad:" + obj.ID)
+        widgets.push(new bbCoachingTrackpad(obj, x, y, color, label, action, size, pList));
     }
 
-    let bbCoachingTrackpad = function (obj, x, y, color, label, action, size, pList, tacticBoard) {
+    let bbCoachingTrackpad = function (obj, x, y, color, label, action, size, pList) {
         size = cg.def(size, 1);
         this.obj = obj;
         let w = .45 * size, h = .84 * size;
@@ -69,19 +69,19 @@ function G2() {
             return uvz && uvz[0] > x - w / 2 && uvz[0] < x + w / 2 && uvz[1] > y - h / 2 && uvz[1] < y + h / 2;
         }
         this.handleEvent = () => {
-            if (tacticBoard.visible) {
-                // console.log("Dragging from bbCoachingTrackpad ID:" + tacticBoard.ID)
+            if (this.obj.visible) {  //finish editing
+                console.log("Dragging from bbCoachingTrackpad ID:" + this.obj.ID)
                 let uvz = g2.getUVZ_R(obj);
-                let player = pList[tacticBoard.ID]
-                if (uvz && tacticBoard.ID != -1) {
+                let player = pList[this.obj.ID]
+                if (uvz && this.obj.ID != -1) {
                     // Determine position in which time point (start or end) is changing.
-                    if (tacticBoard.timeStart != -1) {
+                    if (this.obj.timeStart != -1) {
                         // console.log("Can start dragging")
-                        player.positions[tacticBoard.timeStart][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
-                        player.positions[tacticBoard.timeStart][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
-                    } else if (tacticBoard.timeEnd != -1) {
-                        player.positions[tacticBoard.timeEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
-                        player.positions[tacticBoard.timeEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
+                        player.positions[this.obj.timeStart][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
+                        player.positions[this.obj.timeStart][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
+                    } else if (this.obj.timeEnd != -1) {
+                        player.positions[this.obj.timeEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
+                        player.positions[this.obj.timeEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
                     }
                     if (action && mouseState == 'drag')
                         action();
@@ -100,8 +100,8 @@ function G2() {
                 // Add code for direction drawing.
 
                 let player = pList[i];
-                let start = player.getStartTime();
-                let endList = player.getEndTimeList();
+                let start = player.startTimeList.length === 0 ? -1 : player.startTimeList[0];
+                let endList = player.endTimeList;
 
                 // if no point selected, draw the initial pos
                 if (start == -1) {
