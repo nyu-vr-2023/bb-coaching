@@ -230,8 +230,21 @@ export const init = async model => {
             tacticBoard.visible = true;
         }, 0.9);
 
-        g2.addWidget(playerBoard, 'button', .75, .78, '#d965bb', "ADD MOVEMENT", () => {
+        g2.addWidget(playerBoard, 'button', .6, .78, '#d965bb', "ADD", () => {
             playerBoard.startEditingMovement = true
+        }, 0.6)
+
+        //Add delete button to delete the last interval
+        g2.addWidget(playerBoard, 'button', .8, .78, '#7064e0', "DELETE", () => {
+            if (currPlayer.startTimeList.length == currPlayer.endTimeList.length && currPlayer.startTimeList.length >= 0){
+                currPlayer.startTimeList.pop();
+                currPlayer.endTimeList.pop();
+
+                if (currPlayer.endTimeList.length > 0){
+                    playerBoard.timeEnd = currPlayer.endTimeList[currPlayer.endTimeList.length - 1];
+                }
+                updateTimeButtonInPlayerBoard();
+            }
         }, 0.6)
 
         g2.addWidget(playerBoard, 'button', .6, .68, '#a0aaba', "initial POS", () => {
