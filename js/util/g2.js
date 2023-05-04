@@ -69,26 +69,19 @@ function G2() {
             return uvz && uvz[0] > x - w / 2 && uvz[0] < x + w / 2 && uvz[1] > y - h / 2 && uvz[1] < y + h / 2;
         }
         this.handleEvent = () => {
-            if (tacticBoard.visible){
+            if (tacticBoard.visible) {
                 // console.log("Dragging from bbCoachingTrackpad ID:" + tacticBoard.ID)
                 let uvz = g2.getUVZ_R(obj);
                 let player = pList[tacticBoard.ID]
-                if (uvz && tacticBoard.ID != -1 ) {
+                if (uvz && tacticBoard.ID != -1) {
                     // Determine position in which time point (start or end) is changing.
                     if (tacticBoard.timeStart != -1) {
                         // console.log("Can start dragging")
                         player.positions[tacticBoard.timeStart][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
                         player.positions[tacticBoard.timeStart][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
-                    }
-                    else if (tacticBoard.timeEnd != -1) {
+                    } else if (tacticBoard.timeEnd != -1) {
                         player.positions[tacticBoard.timeEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
                         player.positions[tacticBoard.timeEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
-                        // console.log("end time at 5: " + 5 +"  end position at 5: " + player.positions[5])
-                        // console.log("Current end time: " + tacticBoard.timeEnd +"  Current end position: " + player.positions[tacticBoard.timeEnd])
-                        // for (let i = tacticBoard.timeEnd; i < 24; i++){
-                        //     player.positions[i][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
-                        //     player.positions[i][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
-                        // }
                     }
                     if (action && mouseState == 'drag')
                         action();
@@ -210,7 +203,7 @@ function G2() {
             return uvz && uvz[0] > x - w / 2 && uvz[0] < x + w / 2 && uvz[1] > y - h / 2 && uvz[1] < y + h / 2;
         }
         this.handleEvent = () => {
-            if (this.obj.visible){
+            if (this.obj.visible) {
                 // console.log("I clicked button from id:" + obj.ID)
                 if (action && mouseState == 'release' && this.isWithin()) {
                     action();
@@ -235,7 +228,6 @@ function G2() {
             color = newColor;
         }
     }
-
 
 
     let Slider = function (obj, x, y, color, label, action, size) {
@@ -362,7 +354,6 @@ function G2() {
             drawWidgetOutline(x, y, w, h, isPressed);
         }
     }
-
 
 
     this.arrow = (a, b) => {

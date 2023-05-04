@@ -27,39 +27,37 @@ class Player {
         this.node = new Gltf2Node({url: gltfUrl});
         global.gltfRoot.addNode(this.node);
         this.initialPosition = initialPosition;
-        this.firstStartTime = -1;
+        this.firstStartTime = -1;           //TODO delete this variable
         this.index = index;
         this.color = c;
         // store the position of each time frame for this player
         this.positions = Array.from({length: 24}, () => Object.assign([], initialPosition));
         this.directions = Array(24).fill(0);
         // check if a specific time frame is within a movement, and be used to find the start/end of a move.
-        this.isMoving = Array(24).fill(false);
+        this.isMoving = Array(24).fill(false);      //TODO delete this variable
 
-        this.movingPeriods = [];                                                    //record the time period [startTime, endTime] with movements
+        this.movingPeriods = [];                                             //record the time period [startTime, endTime] with movements
     }
 
     // get the start and end time frame of the move
     // if no action selected return [24,23]
     // if start point selected but no end point return [s,s], s is the selected point.
     // if start and end both selected, return [s,e], s < e.
+    // TODO remove
     getStartTime() {
         return this.firstStartTime;
     }
 
-    getEndTimeList(){
+    // TODO remove
+    getEndTimeList() {
         let endList = [];
 
-        for (let movePeriod of this.movingPeriods){
+        for (let movePeriod of this.movingPeriods) {
             endList.push(movePeriod[1]);
             // console.log("end time: " + movePeriod[1] + " ending position: " + this.positions[movePeriod[1]])
         }
-
-
         return endList;
     }
-
-
 
     pos3D(t) {
         return this.positions[t]
@@ -142,6 +140,7 @@ export const init = async model => {
         }, 0.9);
     }
 
+    // add time buttons for tactic board
     for (let i = 0; i < 24; i++) {
         tacticBoard.timeButton.push(g2.addWidget(tacticBoard, 'button', .55 + i * .018, .84, '#a0aaba', " ", () => {
         }, 0.36));
@@ -154,7 +153,8 @@ export const init = async model => {
     let updateTimeButtonInPlayerBoard = () => {
         let currBoard = boardBase._children[0];
         for (let j = 0; j < 24; j++) {
-            if (currBoard.ID != -1 && playerList[currBoard.ID].isMoving[j]) {
+            // TODO change ismoving to moving pair
+            if (currBoard.ID !== -1 && playerList[currBoard.ID].isMoving[j]) {
                 currBoard.timeButton[j].updateColor(COLORS[currBoard.ID]);
             } else {
                 currBoard.timeButton[j].updateColor('#a0aaba');
@@ -162,7 +162,8 @@ export const init = async model => {
         }
     }
 
-    for (let i = 0; i < numPlayers; i++) {                                                          //create player board
+    // create player boards
+    for (let i = 0; i < numPlayers; i++) {
         let currPlayer = playerList[i];
         let playerBoard = boardBase.add('cube').texture(() => {
             g2.setColor('white');
@@ -178,7 +179,7 @@ export const init = async model => {
             if (currPlayer.firstStartTime !== -1) {
                 initialPos = currPlayer.firstStartTime
             }
-            g2.fillText( (currPlayer.positions[initialPos][0].toFixed(1)) + ',' + (currPlayer.positions[initialPos][1].toFixed(1)) , .9, .68, 'center');
+            g2.fillText((currPlayer.positions[initialPos][0].toFixed(1)) + ',' + (currPlayer.positions[initialPos][1].toFixed(1)), .9, .68, 'center');
 
             // draw timeButton label
             g2.textHeight(.03);
@@ -194,7 +195,7 @@ export const init = async model => {
         playerBoardList.push(playerBoard);
 
         playerBoard.timeButton = [];                                                //array used to store the time button widgets
-        playerBoard.moveButton = [];
+        playerBoard.moveButton = [];    // button that indicates the movements of the ith player
         playerBoard.startEditingMovement = false;                          // true by clicking add movement -> can create new movement
         playerBoard.timeStart = -1;                                        //-1 if haven't set start time; start time if setting end time
         playerBoard.timeEnd = -1;                                          //-1 if haven't set end time;
@@ -208,23 +209,24 @@ export const init = async model => {
             playerBoard.timeButton.push(g2.addWidget(playerBoard, 'button', .51 + k * .018, .90, '#a0aaba', " ", () => {
                 currTime = k;
                 if (playerBoard.startEditingMovement) {
+                    // TODO change isMoving to check the last moving pair
                     if (playerBoard.timeStart === -1 && !currPlayer.isMoving[currTime]) {
-                        if (currPlayer.firstStartTime == -1){
+                        console.assert(playerBoard.timeEnd === -1)
+                        //TODO change
+                        if (currPlayer.firstStartTime === -1) {
                             currPlayer.firstStartTime = currTime;
                         }
                         playerBoard.timeStart = currTime;
-                        currPlayer.isMoving[currTime] = true;
-                        playerBoard.timeEnd = -1;
-                    }
-                    else if (playerBoard.timeEnd === -1 && !currPlayer.isMoving[currTime]){
+                        currPlayer.isMoving[currTime] = true;   //TODO remove
+                    } else if (playerBoard.timeEnd === -1 && !currPlayer.isMoving[currTime]) { //TODO add check end>start
                         playerBoard.timeEnd = currTime;
                         for (let j = playerBoard.timeStart; j < currTime + 1; j++) {
                             currPlayer.isMoving[j] = true;
                         }
                         currPlayer.movingPeriods.push([playerBoard.timeStart, currTime]);
                         playerBoard.timeStart = -1;
+                        playerBoard.timeEnd = -1;
                         playerBoard.startEditingMovement = false;
-
                     }
                     updateTimeButtonInPlayerBoard()
                 }
@@ -240,13 +242,15 @@ export const init = async model => {
             playerBoard.startEditingMovement = true
         }, 0.6)
 
-        g2.addWidget(playerBoard, 'button', .6, .68, '#a0aaba', "initial POS", () => {}, 0.6)
+        g2.addWidget(playerBoard, 'button', .6, .68, '#a0aaba', "initial POS", () => {
+        }, 0.6)
 
         for (let j = 1; j < 5; j++) {
             playerBoard.moveButton.push(g2.addWidget(playerBoard, 'button', .6, .68 - 0.08 * j, '#a0aaba', "move " + j, () => {
             }, 0.6));
         }
-        g2.addTrackpad(playerBoard, .25, .47, '#ff8080', ' ', () => {}, 1, playerList, playerBoard);
+        g2.addTrackpad(playerBoard, .25, .47, '#ff8080', ' ', () => {
+        }, 1, playerList, playerBoard);
     }
 
     model.animate(() => {
