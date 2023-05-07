@@ -84,6 +84,7 @@ function G2() {
                         player.positions[this.obj.timeEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
                     }
                     if (action && mouseState == 'drag')
+                        console.log("dragging")
                         action();
                 }
             }
