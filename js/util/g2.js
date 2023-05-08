@@ -105,7 +105,7 @@ function G2() {
                 let endList = player.endTimeList;
 
                 // if no point selected, draw the initial pos
-                if (start == -1) {
+                if (start === -1) {
                     let pos = player.initialPosition;
                     g2.setColor(player.color);
                     let posOnTrackPad = [x + w * pos[0] / 2, y + h * pos[1] / 2];
