@@ -108,7 +108,8 @@ export const init = async model => {
     tacticBoard.ID = -1;
 
     // add trackpad
-    g2.addTrackpad(tacticBoard, .25, .47, '#ff8080', ' ', () => {}, 1, playerList);
+    g2.addTrackpad(tacticBoard, .25, .47, '#ff8080', ' ', () => {
+    }, 1, playerList);
 
     // add buttons for all players
     for (let i = 0; i < numPlayers; i++) {
@@ -203,18 +204,19 @@ export const init = async model => {
     playerBoard.identity().scale(.9, .9, .0001).opacity(0);
 
     // Add time buttons for the player i
-    for (let currTime = 0; currTime < 24; currTime++) {
-        playerBoard.timeButton.push(g2.addWidget(playerBoard, 'button', .51 + currTime * .018, .90, '#a0aaba', " ", () => {
+    for (let k = 0; k < 24; k++) {
+        playerBoard.timeButton.push(g2.addWidget(playerBoard, 'button', .51 + k * .018, .90, '#a0aaba', " ", () => {
+            currTime = k;
             if (playerBoard.startEditingMovement) {
                 let currPlayer = playerList[playerBoard.ID];
                 let lastEnd = currPlayer.endTimeList.length > 0 ? currPlayer.endTimeList[currPlayer.endTimeList.length - 1] : 0;
-                if (playerBoard.timeStart === -1 && currTime >= lastEnd) {
-                    playerBoard.timeStart = currTime;
+                if (playerBoard.timeStart === -1 && k >= lastEnd) {
+                    playerBoard.timeStart = k;
                     playerBoard.timeEnd = -1;
-                    currPlayer.startTimeList.push(currTime);
-                } else if (playerBoard.timeEnd === -1 && currTime > playerBoard.timeStart) {
-                    playerBoard.timeEnd = currTime;
-                    currPlayer.endTimeList.push(currTime);
+                    currPlayer.startTimeList.push(k);
+                } else if (playerBoard.timeEnd === -1 && k > playerBoard.timeStart) {
+                    playerBoard.timeEnd = k;
+                    currPlayer.endTimeList.push(k);
                     playerBoard.timeStart = -1;
 
                     playerBoard.startEditingMovement = false;
