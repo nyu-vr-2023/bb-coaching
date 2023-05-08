@@ -4,7 +4,6 @@ import {Gltf2Node} from "../render/nodes/gltf2.js";
 import {g2} from "../util/g2.js";
 import {buttonState, joyStickState} from "../render/core/controllerInput.js";
 import {COLORS, MAX_TIME} from "./const.js";
-import {resampleCurve} from "../render/core/cg.js";
 
 let currTime = 0
 let HUDIsShown = false;      // press right[1] to show hud, press again to hide it
@@ -248,7 +247,7 @@ export const init = async model => {
         playerBoard.path = [];
     }, 0.6)
 
-    //Add delete button to delete the last interval
+    // Add delete button to delete the last interval
     g2.addWidget(playerBoard, 'button', .8, .78, '#7064e0', "DELETE", () => {
         let currPlayer = playerList[playerBoard.ID];
         if (currPlayer.startTimeList.length === currPlayer.endTimeList.length && currPlayer.startTimeList.length >= 0) {
@@ -278,10 +277,12 @@ export const init = async model => {
     g2.addTrackpad(playerBoard, .25, .47, '#ff8080', ' ', () => {
     }, 1, playerList);
 
+    let isDrawingMode = () => playerBoard.visible && playerList[playerBoard.ID].endTimeList.length > 0
+        && playerList[playerBoard.ID].endTimeList.length === playerList[playerBoard.ID].startTimeList.length
+
     // handle the on/off of drawMode. Same logic as HudButtonHandler().
     let drawButtonHandler = () => {
-        if (playerBoard.visible && playerList[playerBoard.ID].endTimeList.length > 0 
-            && playerList[playerBoard.ID].endTimeList.length === playerList[playerBoard.ID].startTimeList.length) {
+        if (isDrawingMode()) {
             if (buttonState.right[4] && buttonState.right[4].pressed && !drawButtonLock) {
                 playerBoard.drawMode = !playerBoard.drawMode;
                 drawButtonLock = true;

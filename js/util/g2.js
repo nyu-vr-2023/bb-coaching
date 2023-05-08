@@ -83,7 +83,7 @@ function G2() {
                             player.positions[this.obj.timeStart][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
                         } 
                     } else if (this.obj.timeEnd != -1) {
-                        // Only in drawMode could user draw a movement path, otherwise the uvz represents the settting of the end point for the move.
+                        // Only in drawMode could user draw a movement path, otherwise the uvz represents the setting of the end point for the move.
                         if (!this.obj.drawMode) {
                             player.positions[this.obj.timeEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
                             player.positions[this.obj.timeEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
