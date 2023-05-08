@@ -279,7 +279,7 @@ export const init = async model => {
     g2.addTrackpad(playerBoard, .25, .47, '#ff8080', ' ', () => {
     }, 1, playerList);
 
-    let isDrawingMode = () => playerBoard.visible && playerList[playerBoard.ID].endTimeList.length > 0
+    let isDrawingMode = () => playerList[playerBoard.ID].endTimeList.length > 0
         && playerList[playerBoard.ID].endTimeList.length === playerList[playerBoard.ID].startTimeList.length
 
     // handle the on/off of drawMode. Same logic as HudButtonHandler().
@@ -298,12 +298,24 @@ export const init = async model => {
         }
     }
 
+    let changeDirection = () => {
+        if (currTime >= 0) {
+            console.assert(currPlayerIndex >= 0)
+            playerList[currPlayerIndex].directions[currTime] += 2 * model.deltaTime * joyStickState.right.x;
+            if (joyStickState.right.x)
+                console.log("directions:", playerList[currPlayerIndex].directions)
+        }
+    }
 
     model.animate(() => {
         boardBase.identity().boardHud().scale(1.3);
 
         hudButtonHandler();
-        drawButtonHandler();
+        if (playerBoard.visible) {
+            // current board is player board
+            drawButtonHandler();
+            changeDirection()
+        }
 
         if (HUDIsShown) {
             if (boardBase._children.length === 0) {
