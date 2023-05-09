@@ -186,27 +186,15 @@ export const init = async model => {
 // add time buttons for tactic board
     for (let i = 0; i < 24; i++) {
         tacticBoard.timeButton.push(g2.addWidget(tacticBoard, 'button', .55 + i * .018, .84, '#a0aaba', " ", () => {
-
+            tacticBoard.timeButton[currTime].updateColor('#a0aaba');
             currTime = i;
+            tacticBoard.timeButton[currTime].updateColor('#37373f');
             tacticBoard.timeButtonValue = i;
-            updateTimeButtonInTacticBoard();
         }, 0.36));
     }
 
     tacticBoard.identity().scale(.9, .9, .0001).opacity(0);
     fieldMap.identity().move(-0.45, -0.045, 0.0002).scale(.70, .76, .0001).opacity(0.2);
-
-    // update the color of each time button based on the player and time frame selected in the tactic board
-    let updateTimeButtonInTacticBoard = () => {
-        let currBoard = boardBase._children[0];
-        for (let j = 0; j < 24; j++) {
-            if (currBoard.ID === -1 && currBoard.timeButtonValue === j) {
-                currBoard.timeButton[j].updateColor('#37373f');
-            } else {
-                currBoard.timeButton[j].updateColor('#a0aaba');
-            }
-        }
-    }
 
 
     // update the color of each time button based on the player and time frame selected in the player board
