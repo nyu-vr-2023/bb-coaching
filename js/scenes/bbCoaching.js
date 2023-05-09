@@ -25,6 +25,7 @@ let hudButtonHandler = () => {
 }
 
 let initialPosList = [[-.6, .4, 0], [.6, .4, 0], [-.9, .9, 0], [.3, .7, 0], [.9, .9, 0]]
+
 // let initialPosList = [[0., 0., 0], [0., 0, 0], [0, 0, 0], [.3, .7, 0], [.9, .9, 0]]
 
 class Player {
@@ -128,6 +129,7 @@ export const init = async model => {
     tacticBoard.timeButton = [];                                                //array of size 24 used to store the time button widgets
     tacticBoard.visible = false;
     tacticBoard.ID = -1;
+    tacticBoard.view = "global"
 
     // add trackpad
     g2.addTrackpad(tacticBoard, .25, .47, '#fad4d4', ' ', () => {
@@ -146,9 +148,27 @@ export const init = async model => {
 
             updateTimeButtonInPlayerBoard();
         }, 0.9);
+
+        g2.addWidget(tacticBoard, 'button', .85, .12 + i * .14, COLORS[i], "View", () => {
+            if (tacticBoard.view == "global") {
+                console.log("rendering extra button")
+            }
+            let viewTranslate;
+            if (window.vr) {
+                viewTranslate = [0, 0, 1];
+            } else {
+                viewTranslate = [0, 0, 4];
+            }
+            let posPlayer = playerList[i].positions[currTime];
+            let posScene = [posPlayer[0] * Court.width, posPlayer[2], -posPlayer[1] * Court.height]
+            global.gltfRoot.translation = cg.add(viewTranslate, cg.scale(posScene, -1))
+            // let rotation1 = quat.create();
+            // quat.rotateY(rotation1, rotation1, playerList[i].directions[currTime]);
+            // global.gltfRoot.rotation = rotation1
+        }, .9);
     }
 
-    // add time buttons for tactic board
+// add time buttons for tactic board
     for (let i = 0; i < 24; i++) {
         tacticBoard.timeButton.push(g2.addWidget(tacticBoard, 'button', .55 + i * .018, .84, '#a0aaba', " ", () => {
             if (currTime >= 0) {
@@ -162,7 +182,7 @@ export const init = async model => {
     tacticBoard.identity().scale(.9, .9, .0001).opacity(0);
     fieldMap.identity().move(-0.45, -0.045, 0.0002).scale(.70, .76, .0001).opacity(0.2);
 
-    // update the color of each time button based on the player and time frame selected
+// update the color of each time button based on the player and time frame selected
     let updateTimeButtonInPlayerBoard = () => {
         let currBoard = boardBase._children[0];
         let currPlayer = playerList[currPlayerIndex];
@@ -189,7 +209,7 @@ export const init = async model => {
         }
     }
 
-    // create player boards
+// create player boards
     let playerBoard = boardBase.add('cube').texture(() => {
         let i = currPlayerIndex
         let currPlayer = playerList[i];
@@ -240,7 +260,7 @@ export const init = async model => {
 
     playerBoard.identity().scale(.9, .9, .0001).opacity(0);
 
-    // Add time buttons for the player i
+// Add time buttons for the player i
     for (let k = 0; k < 24; k++) {
         playerBoard.timeButton.push(g2.addWidget(playerBoard, 'button', .51 + k * .018, .90, '#a0aaba', " ", () => {
             currTime = k;
@@ -276,7 +296,7 @@ export const init = async model => {
         playerBoard.path = [];
     }, 0.6)
 
-    // Add delete button to delete the last interval
+// Add delete button to delete the last interval
     g2.addWidget(playerBoard, 'button', .8, .78, '#7064e0', "DELETE", () => {
         let currPlayer = playerList[playerBoard.ID];
         if (currPlayer.startTimeList.length === currPlayer.endTimeList.length && currPlayer.startTimeList.length >= 0) {
@@ -307,7 +327,7 @@ export const init = async model => {
     let isDrawingMode = () => playerList[playerBoard.ID].endTimeList.length > 0
         && playerList[playerBoard.ID].endTimeList.length === playerList[playerBoard.ID].startTimeList.length
 
-    // handle the on/off of drawMode. Same logic as HudButtonHandler().
+// handle the on/off of drawMode. Same logic as HudButtonHandler().
     let drawButtonHandler = () => {
         if (isDrawingMode()) {
             if (buttonState.right[4] && buttonState.right[4].pressed && !drawButtonLock) {
@@ -340,24 +360,16 @@ export const init = async model => {
         return xyz;
     }
 
-    let rotation1 = quat.create();
 
     model.animate(() => {
         boardBase.identity().boardHud().scale(1.3);
 
-        let viewTranslate;
-        if (window.vr) {
-            viewTranslate = [0, 0, 1];
-        } else {
-            viewTranslate = [0, 0, 4];
-        }
-        global.gltfRoot.translation = viewTranslate
 
-        // quat.rotateY(rotation1, rotation1, -.05);
-        global.gltfRoot.rotation = rotation1
-        console.log("viewMatrix")
-        console.log(getMatrixXYZ(viewMatrix[0]))
-        console.log(viewMatrix)
+        // console.log("viewMatrix")
+        // console.log(getMatrixXYZ(viewMatrix[0]))
+        // console.log(viewMatrix)
+        // console.log("global.gltfRoot.rotation")
+        // console.log(global.gltfRoot.rotation)
         hudButtonHandler();
         if (playerBoard.visible) {
             // current board is player board
