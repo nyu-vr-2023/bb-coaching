@@ -136,7 +136,7 @@ function G2() {
                                 this.obj.path = []
                             } else {
                                 let uvz = g2.getUVZ_R(this.obj);
-                                if (uvz && uvz[0] > .1 && uvz[0] < .9) {
+                                if (uvz && uvz[0] > .01 && uvz[0] < .9) {
                                     if (g2.mouseState() == 'drag') {
                                         this.obj.path.push(uvz)
                                     } else if (g2.mouseState() == 'release') {
