@@ -60,7 +60,6 @@ function G2() {
         widgets.push(new bbCoachingTrackpad(obj, x, y, color, label, action, size, pList));
     }
 
-
     let bbCoachingTrackpad = function (obj, x, y, color, label, action, size, pList) {
         size = cg.def(size, 1);
         this.obj = obj;

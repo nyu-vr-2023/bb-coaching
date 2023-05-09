@@ -2,8 +2,10 @@ import * as global from "../global.js";
 import * as cg from "../render/core/cg.js";
 import {Gltf2Node} from "../render/nodes/gltf2.js";
 import {g2} from "../util/g2.js";
-import {buttonState, joyStickState} from "../render/core/controllerInput.js";
+import {buttonState, joyStickState, viewMatrix} from "../render/core/controllerInput.js";
 import {COLORS, MAX_TIME} from "./const.js";
+import {gltfRoot} from "../global.js";
+import {quat} from "../render/math/gl-matrix.js";
 
 let currTime = 0
 let HUDIsShown = false;      // press right[1] to show hud, press again to hide it
@@ -23,6 +25,8 @@ let hudButtonHandler = () => {
 }
 
 let initialPosList = [[-.6, .4, 0], [.6, .4, 0], [-.9, .9, 0], [.3, .7, 0], [.9, .9, 0]]
+
+// let initialPosList = [[0., 0., 0], [0., 0, 0], [0, 0, 0], [.3, .7, 0], [.9, .9, 0]]
 
 class Player {
     constructor(gltfUrl, index, initialPosition, c) {
@@ -125,6 +129,7 @@ export const init = async model => {
     tacticBoard.timeButton = [];                                                //array of size 24 used to store the time button widgets
     tacticBoard.visible = false;
     tacticBoard.ID = -1;
+    tacticBoard.view = "global"
 
     // add trackpad
     g2.addTrackpad(tacticBoard, .25, .47, '#fad4d4', ' ', () => {
@@ -143,18 +148,53 @@ export const init = async model => {
 
             updateTimeButtonInPlayerBoard();
         }, 0.9);
+
+        g2.addWidget(tacticBoard, 'button', .85, .12 + i * .14, COLORS[i], "View", () => {
+            if (tacticBoard.view == "global") {
+                // set translation
+                let viewTranslate;
+                if (window.vr) {
+                    viewTranslate = [0, 0, 1];
+                } else {
+                    viewTranslate = [0, 0, 4];
+                }
+                let posPlayer = playerList[i].positions[currTime];
+                let posScene = [posPlayer[0] * Court.width, posPlayer[2], -posPlayer[1] * Court.height]
+                global.gltfRoot.translation = cg.add(viewTranslate, cg.scale(posScene, -1))
+
+                // set rotation
+                // let rotation = quat.create();
+                // let angel = playerList[i].directions[currTime] - Math.PI / 2;
+                // console.log("rotation angel:")
+                // quat.rotateY(rotation, rotation, playerList[i].directions[currTime] - Math.PI / 2);
+                // global.gltfRoot.rotation = rotation
+
+                tacticBoard.view = "local";
+            } else {
+                global.gltfRoot.translation = [0, 0, 0];
+                global.gltfRoot.rotation = [0, 0, 0, 1];
+                tacticBoard.view = "global";
+            }
+
+
+        }, .9);
     }
 
-    // add time buttons for tactic board
+// add time buttons for tactic board
     for (let i = 0; i < 24; i++) {
         tacticBoard.timeButton.push(g2.addWidget(tacticBoard, 'button', .55 + i * .018, .84, '#a0aaba', " ", () => {
+            if (currTime >= 0) {
+                tacticBoard.timeButton[currTime].updateColor('#a0aaba');
+            }
+            currTime = i;
+            tacticBoard.timeButton[currTime].updateColor("pink");
         }, 0.36));
     }
 
     tacticBoard.identity().scale(.9, .9, .0001).opacity(0);
     fieldMap.identity().move(-0.45, -0.045, 0.0002).scale(.70, .76, .0001).opacity(0.2);
 
-    // update the color of each time button based on the player and time frame selected
+// update the color of each time button based on the player and time frame selected
     let updateTimeButtonInPlayerBoard = () => {
         let currBoard = boardBase._children[0];
         let currPlayer = playerList[currPlayerIndex];
@@ -181,7 +221,7 @@ export const init = async model => {
         }
     }
 
-    // create player boards
+// create player boards
     let playerBoard = boardBase.add('cube').texture(() => {
         let i = currPlayerIndex
         let currPlayer = playerList[i];
@@ -232,7 +272,7 @@ export const init = async model => {
 
     playerBoard.identity().scale(.9, .9, .0001).opacity(0);
 
-    // Add time buttons for the player i
+// Add time buttons for the player i
     for (let k = 0; k < 24; k++) {
         playerBoard.timeButton.push(g2.addWidget(playerBoard, 'button', .51 + k * .018, .90, '#a0aaba', " ", () => {
             currTime = k;
@@ -268,7 +308,7 @@ export const init = async model => {
         playerBoard.path = [];
     }, 0.6)
 
-    // Add delete button to delete the last interval
+// Add delete button to delete the last interval
     g2.addWidget(playerBoard, 'button', .8, .78, '#7064e0', "DELETE", () => {
         let currPlayer = playerList[playerBoard.ID];
         if (currPlayer.startTimeList.length === currPlayer.endTimeList.length && currPlayer.startTimeList.length >= 0) {
@@ -299,7 +339,7 @@ export const init = async model => {
     let isDrawingMode = () => playerList[playerBoard.ID].endTimeList.length > 0
         && playerList[playerBoard.ID].endTimeList.length === playerList[playerBoard.ID].startTimeList.length
 
-    // handle the on/off of drawMode. Same logic as HudButtonHandler().
+// handle the on/off of drawMode. Same logic as HudButtonHandler().
     let drawButtonHandler = () => {
         if (isDrawingMode()) {
             if (buttonState.right[4] && buttonState.right[4].pressed && !drawButtonLock) {
@@ -324,9 +364,24 @@ export const init = async model => {
         }
     }
 
+    let getMatrixXYZ = (matrix) => {
+        let xyz = []
+        for (let i = 12; i < 15; i++) {
+            xyz.push(matrix[i]);
+        }
+        return xyz;
+    }
+
+
     model.animate(() => {
         boardBase.identity().boardHud().scale(1.3);
 
+
+        // console.log("viewMatrix")
+        // console.log(getMatrixXYZ(viewMatrix[0]))
+        // console.log(viewMatrix)
+        // console.log("global.gltfRoot.rotation")
+        // console.log(global.gltfRoot.rotation)
         hudButtonHandler();
         if (playerBoard.visible) {
             // current board is player board
