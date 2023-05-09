@@ -87,15 +87,12 @@ function G2() {
                         if (!this.obj.drawMode) {
                             player.positions[this.obj.timeEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
                             player.positions[this.obj.timeEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
-                            for (let i = this.obj.timeEnd + 1; i < 24; i++) {
-                                player.positions[i][0] = player.positions[this.obj.timeEnd][0];
-                                player.positions[i][1] = player.positions[this.obj.timeEnd][1];
-                            }
+                            player.setAllFromEnd(this.obj.timeEnd, false)
                         } else {
                             if (g2.mouseState() == 'press') {
                                 this.obj.path = []
                             } else {
-                                let uvz = g2.getUVZ(this.obj);
+                                let uvz = g2.getUVZ_R(this.obj);
                                 if (uvz && uvz[0] > .1 && uvz[0] < .9) {
                                     if (g2.mouseState() == 'drag') {
                                         this.obj.path.push(uvz)
@@ -144,6 +141,7 @@ function G2() {
             let position = player.positions[t]
             let positionOnTrackPad = [x + w * position[0] / 2, y + h * position[1] / 2]
             scale = cg.def(scale, 1);
+            g2.setColor(player.color);
             g2.lineWidth(.005 * scale);
             g2.arrow(positionOnTrackPad, [positionOnTrackPad[0] + scale * Math.cos(player.directions[t]) * .05, positionOnTrackPad[1] + scale * Math.sin(player.directions[t]) * .05]);
         }
