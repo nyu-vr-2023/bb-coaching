@@ -57,10 +57,54 @@ function G2() {
 
     this.addTrackpad = (obj, x, y, color, label, action, size, pList) => {
         // console.log("Current Player ID in trackPad:" + obj.ID)
-        widgets.push(new bbCoachingTrackpad(obj, x, y, color, label, action, size, pList));
+        if (obj.ID === -1){
+            widgets.push(new tacticBoardTrackpad(obj, x, y, color, label, action, size, pList));
+        }
+        else{
+            widgets.push(new playerBoardTrackpad(obj, x, y, color, label, action, size, pList));
+        }
+
     }
 
-    let bbCoachingTrackpad = function (obj, x, y, color, label, action, size, pList) {
+    let tacticBoardTrackpad = function (obj, x, y, color, label, action, size, pList){
+        size = cg.def(size, 1);
+        this.obj = obj;
+        let w = .45 * size, h = .84 * size;
+        this.isWithin = () => {
+            let uvz = g2.getUVZ_R(obj);
+            return uvz && uvz[0] > x - w / 2 && uvz[0] < x + w / 2 && uvz[1] > y - h / 2 && uvz[1] < y + h / 2;
+        }
+
+        this.handleEvent = () => {
+            //nothing to do
+        }
+
+        this.drawDirectionArrow = (player, t, scale) => {
+            let position = player.positions[t]
+            let positionOnTrackPad = [x + w * position[0] / 2, y + h * position[1] / 2]
+            scale = cg.def(scale, 1);
+            g2.setColor(player.color);
+            g2.lineWidth(.005 * scale);
+            g2.arrow(positionOnTrackPad, [positionOnTrackPad[0] + scale * Math.cos(player.directions[t]) * .05, positionOnTrackPad[1] + scale * Math.sin(player.directions[t]) * .05]);
+        }
+        this.draw = () => {
+            g2.textHeight(.09 * size);
+            let isPressed = this == activeWidget && (mouseState == 'press' || mouseState == 'drag');
+            g2.setColor(color, isPressed ? .75 : this.isWithin() ? .85 : 1);
+            g2.fillRect(x - w / 2, y - h / 2, w, h);
+            g2.setColor(color, isPressed ? .375 : this.isWithin() ? .475 : .5);
+            for (let i = 0; i < pList.length; i++) {
+                let player = pList[i];
+                let pos = player.positions[this.obj.timeButtonValue];;
+                g2.setColor(player.color);
+                let posOnTrackPad = [x + w * pos[0] / 2, y + h * pos[1] / 2];
+                g2.fillRect(posOnTrackPad[0] - .015 * size, posOnTrackPad[1] - .015 * size, .03 * size, .03 * size);
+                this.drawDirectionArrow(player, this.obj.timeButtonValue);
+            }
+        }
+    }
+
+    let playerBoardTrackpad = function (obj, x, y, color, label, action, size, pList) {
         size = cg.def(size, 1);
         this.obj = obj;
         let w = .45 * size, h = .84 * size;

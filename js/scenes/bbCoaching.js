@@ -35,9 +35,11 @@ class Player {
         this.initialPosition = initialPosition;
         this.index = index;
         this.color = c;
+
         // store the position of each time frame for this player
         this.positions = Array.from({length: 24}, () => Object.assign([], initialPosition));
         this.directions = Array(24).fill(0);
+
         // split movingPair into startTimeList and endTimeList for trackpad use.
         this.startTimeList = [];
         this.endTimeList = [];
@@ -130,6 +132,7 @@ export const init = async model => {
     tacticBoard.visible = false;
     tacticBoard.ID = -1;
     tacticBoard.view = "global"
+    tacticBoard.timeButtonValue = 0;
 
     // add trackpad
     g2.addTrackpad(tacticBoard, .25, .47, '#fad4d4', ' ', () => {
@@ -183,18 +186,30 @@ export const init = async model => {
 // add time buttons for tactic board
     for (let i = 0; i < 24; i++) {
         tacticBoard.timeButton.push(g2.addWidget(tacticBoard, 'button', .55 + i * .018, .84, '#a0aaba', " ", () => {
-            if (currTime >= 0) {
-                tacticBoard.timeButton[currTime].updateColor('#a0aaba');
-            }
+
             currTime = i;
-            tacticBoard.timeButton[currTime].updateColor("pink");
+            tacticBoard.timeButtonValue = i;
+            updateTimeButtonInTacticBoard();
         }, 0.36));
     }
 
     tacticBoard.identity().scale(.9, .9, .0001).opacity(0);
     fieldMap.identity().move(-0.45, -0.045, 0.0002).scale(.70, .76, .0001).opacity(0.2);
 
-// update the color of each time button based on the player and time frame selected
+    // update the color of each time button based on the player and time frame selected in the tactic board
+    let updateTimeButtonInTacticBoard = () => {
+        let currBoard = boardBase._children[0];
+        for (let j = 0; j < 24; j++) {
+            if (currBoard.ID === -1 && currBoard.timeButtonValue === j) {
+                currBoard.timeButton[j].updateColor('#37373f');
+            } else {
+                currBoard.timeButton[j].updateColor('#a0aaba');
+            }
+        }
+    }
+
+
+    // update the color of each time button based on the player and time frame selected in the player board
     let updateTimeButtonInPlayerBoard = () => {
         let currBoard = boardBase._children[0];
         let currPlayer = playerList[currPlayerIndex];
@@ -221,7 +236,7 @@ export const init = async model => {
         }
     }
 
-// create player boards
+    // create player boards
     let playerBoard = boardBase.add('cube').texture(() => {
         let i = currPlayerIndex
         let currPlayer = playerList[i];
@@ -266,7 +281,7 @@ export const init = async model => {
     playerBoard.timeStart = -1;                                        //-1 if haven't set start time; start time if setting end time
     playerBoard.timeEnd = -1;                                          //-1 if haven't set end time;
     playerBoard.visible = false;
-    playerBoard.ID = -1;
+    playerBoard.ID = 0;
     playerBoard.drawMode = false;
     playerBoard.path = [];
 
