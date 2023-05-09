@@ -151,20 +151,32 @@ export const init = async model => {
 
         g2.addWidget(tacticBoard, 'button', .85, .12 + i * .14, COLORS[i], "View", () => {
             if (tacticBoard.view == "global") {
-                console.log("rendering extra button")
-            }
-            let viewTranslate;
-            if (window.vr) {
-                viewTranslate = [0, 0, 1];
+                // set translation
+                let viewTranslate;
+                if (window.vr) {
+                    viewTranslate = [0, 0, 1];
+                } else {
+                    viewTranslate = [0, 0, 4];
+                }
+                let posPlayer = playerList[i].positions[currTime];
+                let posScene = [posPlayer[0] * Court.width, posPlayer[2], -posPlayer[1] * Court.height]
+                global.gltfRoot.translation = cg.add(viewTranslate, cg.scale(posScene, -1))
+
+                // set rotation
+                // let rotation = quat.create();
+                // let angel = playerList[i].directions[currTime] - Math.PI / 2;
+                // console.log("rotation angel:")
+                // quat.rotateY(rotation, rotation, playerList[i].directions[currTime] - Math.PI / 2);
+                // global.gltfRoot.rotation = rotation
+
+                tacticBoard.view = "local";
             } else {
-                viewTranslate = [0, 0, 4];
+                global.gltfRoot.translation = [0, 0, 0];
+                global.gltfRoot.rotation = [0, 0, 0, 1];
+                tacticBoard.view = "global";
             }
-            let posPlayer = playerList[i].positions[currTime];
-            let posScene = [posPlayer[0] * Court.width, posPlayer[2], -posPlayer[1] * Court.height]
-            global.gltfRoot.translation = cg.add(viewTranslate, cg.scale(posScene, -1))
-            // let rotation1 = quat.create();
-            // quat.rotateY(rotation1, rotation1, playerList[i].directions[currTime]);
-            // global.gltfRoot.rotation = rotation1
+
+
         }, .9);
     }
 
