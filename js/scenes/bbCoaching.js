@@ -50,6 +50,25 @@ class Player {
     update(t) {
         this.node.matrix = cg.mMultiply(cg.mTranslate(this.positions[t][0] * Court.width, this.positions[t][2], -this.positions[t][1] * Court.height), cg.mRotateY(this.directions[t]))
     }
+
+    // set all the positions later than the current last end pos to be same as the current last end pos.
+    setAllFromEnd(last_end, setDirect) {
+        for (let i = last_end + 1; i < 24; i++) {
+            this.positions[i][0] = this.positions[last_end][0];
+            this.positions[i][1] = this.positions[last_end][1];
+            if (setDirect) {
+                this.directions[i] = this.directions[last_end];
+            }
+        }
+    }
+
+    resetPosAndDirect() {
+        for (let i = 0; i < 24; i++) {
+            this.positions[i][0] = this.initialPosition[0];
+            this.positions[i][1] = this.initialPosition[1];
+            this.directions[i] = 0;
+        }
+    }
 }
 
 class Court {
@@ -108,7 +127,7 @@ export const init = async model => {
     tacticBoard.ID = -1;
 
     // add trackpad
-    g2.addTrackpad(tacticBoard, .25, .47, '#ff8080', ' ', () => {
+    g2.addTrackpad(tacticBoard, .25, .47, '#fad4d4', ' ', () => {
     }, 1, playerList);
 
     // add buttons for all players
@@ -255,15 +274,13 @@ export const init = async model => {
         if (currPlayer.startTimeList.length === currPlayer.endTimeList.length && currPlayer.startTimeList.length >= 0) {
             currPlayer.startTimeList.pop();
             currPlayer.endTimeList.pop();
-            // set all the positions later than the current last end pos to be same as the current last end pos.
-            let last_end = currPlayer.endTimeList[currPlayer.endTimeList.length - 1];
-            for (let i = last_end + 1; i < 24; i++) {
-                currPlayer.positions[i][0] = currPlayer.positions[last_end][0];
-                currPlayer.positions[i][1] = currPlayer.positions[last_end][1];
-            }
 
             if (currPlayer.endTimeList.length > 0) {
-                playerBoard.timeEnd = currPlayer.endTimeList[currPlayer.endTimeList.length - 1];
+                let last_end = currPlayer.endTimeList[currPlayer.endTimeList.length - 1];
+                currPlayer.setAllFromEnd(last_end, true);
+                playerBoard.timeEnd = last_end;
+            } else {
+                currPlayer.resetPosAndDirect();
             }
             updateTimeButtonInPlayerBoard();
         }
@@ -276,7 +293,7 @@ export const init = async model => {
         playerBoard.moveButton.push(g2.addWidget(playerBoard, 'button', .6, .68 - 0.08 * j, '#a0aaba', "move " + j, () => {
         }, 0.6));
     }
-    g2.addTrackpad(playerBoard, .25, .47, '#ff8080', ' ', () => {
+    g2.addTrackpad(playerBoard, .25, .47, '#fad4d4', ' ', () => {
     }, 1, playerList);
 
     let isDrawingMode = () => playerList[playerBoard.ID].endTimeList.length > 0
