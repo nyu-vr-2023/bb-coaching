@@ -2,8 +2,10 @@ import * as global from "../global.js";
 import * as cg from "../render/core/cg.js";
 import {Gltf2Node} from "../render/nodes/gltf2.js";
 import {g2} from "../util/g2.js";
-import {buttonState, joyStickState} from "../render/core/controllerInput.js";
+import {buttonState, joyStickState, viewMatrix} from "../render/core/controllerInput.js";
 import {COLORS, MAX_TIME} from "./const.js";
+import {gltfRoot} from "../global.js";
+import {quat} from "../render/math/gl-matrix.js";
 
 let currTime = 0
 let HUDIsShown = false;      // press right[1] to show hud, press again to hide it
@@ -23,6 +25,7 @@ let hudButtonHandler = () => {
 }
 
 let initialPosList = [[-.6, .4, 0], [.6, .4, 0], [-.9, .9, 0], [.3, .7, 0], [.9, .9, 0]]
+// let initialPosList = [[0., 0., 0], [0., 0, 0], [0, 0, 0], [.3, .7, 0], [.9, .9, 0]]
 
 class Player {
     constructor(gltfUrl, index, initialPosition, c) {
@@ -148,6 +151,11 @@ export const init = async model => {
     // add time buttons for tactic board
     for (let i = 0; i < 24; i++) {
         tacticBoard.timeButton.push(g2.addWidget(tacticBoard, 'button', .55 + i * .018, .84, '#a0aaba', " ", () => {
+            if (currTime >= 0) {
+                tacticBoard.timeButton[currTime].updateColor('#a0aaba');
+            }
+            currTime = i;
+            tacticBoard.timeButton[currTime].updateColor("pink");
         }, 0.36));
     }
 
@@ -324,9 +332,32 @@ export const init = async model => {
         }
     }
 
+    let getMatrixXYZ = (matrix) => {
+        let xyz = []
+        for (let i = 12; i < 15; i++) {
+            xyz.push(matrix[i]);
+        }
+        return xyz;
+    }
+
+    let rotation1 = quat.create();
+
     model.animate(() => {
         boardBase.identity().boardHud().scale(1.3);
 
+        let viewTranslate;
+        if (window.vr) {
+            viewTranslate = [0, 0, 1];
+        } else {
+            viewTranslate = [0, 0, 4];
+        }
+        global.gltfRoot.translation = viewTranslate
+
+        // quat.rotateY(rotation1, rotation1, -.05);
+        global.gltfRoot.rotation = rotation1
+        console.log("viewMatrix")
+        console.log(getMatrixXYZ(viewMatrix[0]))
+        console.log(viewMatrix)
         hudButtonHandler();
         if (playerBoard.visible) {
             // current board is player board
