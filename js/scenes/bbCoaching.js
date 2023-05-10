@@ -72,6 +72,17 @@ class Player {
         }
     }
 
+    // set all the position before the initial pos to be same as initial
+    setAllToInitial(initial, setDirect) {
+        for (let i = 0; i < initial; i++) {
+            this.positions[i][0] = this.positions[initial][0];
+            this.positions[i][1] = this.positions[initial][1];
+            if (setDirect) {
+                this.directions[i] = this.directions[initial];
+            }
+        }
+    }
+
     resetPosAndDirect() {
         for (let i = 0; i < 24; i++) {
             this.positions[i][0] = this.initialPosition[0];
