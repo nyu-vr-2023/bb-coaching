@@ -12,6 +12,10 @@ let HUDIsShown = false;      // press right[1] to show hud, press again to hide 
 let hudButtonLock = false;
 let currPlayerIndex = -1;
 let drawButtonLock = false;
+let delta_time = 0;
+let last_time = 0;
+let isPlaying = false;
+let isPausing = true;
 
 let hudButtonHandler = () => {
     if (buttonState.right[1] && buttonState.right[1].pressed && !hudButtonLock) {
@@ -133,6 +137,11 @@ export const init = async model => {
     tacticBoard.ID = -1;
     tacticBoard.view = "global"
     tacticBoard.timeButtonValue = 0;
+    tacticBoard.setTime = (timeStamp) => {
+        tacticBoard.timeButton[tacticBoard.timeButtonValue].updateColor('#a0aaba');
+        tacticBoard.timeButtonValue = timeStamp;
+        tacticBoard.timeButton[tacticBoard.timeButtonValue].updateColor('#37373f');
+    }
 
     // add trackpad
     g2.addTrackpad(tacticBoard, .25, .47, '#fad4d4', ' ', () => {
@@ -140,7 +149,7 @@ export const init = async model => {
 
     // add buttons for all players
     for (let i = 0; i < numPlayers; i++) {
-        g2.addWidget(tacticBoard, 'button', .65, .12 + i * .14, COLORS[i], '#' + i, () => {
+        g2.addWidget(tacticBoard, 'button', .65, .12 + i * .14, COLORS[i], ' #' + i + ' ', () => {
             tacticBoard.visible = false
             playerBoard.visible = true
             boardBase._children = [playerBoard, fieldMap]
@@ -183,13 +192,32 @@ export const init = async model => {
         }, .9);
     }
 
-// add time buttons for tactic board
+    // add play button
+    g2 .addWidget(tacticBoard, 'button', .72, .93, '#a0aaba', "▶︎", () => {
+        if (isPausing === true) {
+            isPausing = false
+        }
+        if (isPlaying === false) {
+            isPlaying = true;
+            currTime = 0;
+            last_time = model.time;
+            delta_time = 0;
+            tacticBoard.setTime(0);
+        }
+    })
+
+    // add pause button
+    g2 .addWidget(tacticBoard, 'button', .85, .93, '#a0aaba', "||", () => {
+        if (isPlaying === true && isPausing === false) {
+            isPausing = true;
+        }
+    })
+
+    // add time buttons for tactic board
     for (let i = 0; i < 24; i++) {
         tacticBoard.timeButton.push(g2.addWidget(tacticBoard, 'button', .55 + i * .018, .84, '#a0aaba', " ", () => {
-            tacticBoard.timeButton[currTime].updateColor('#a0aaba');
             currTime = i;
-            tacticBoard.timeButton[currTime].updateColor('#37373f');
-            tacticBoard.timeButtonValue = i;
+            tacticBoard.setTime(i);
         }, 0.36));
     }
 
@@ -303,6 +331,8 @@ export const init = async model => {
         tacticBoard.visible = true;
         playerBoard.drawMode = false;
         playerBoard.path = [];
+        currTime = 0;
+        tacticBoard.setTime(0);
     }, 0.9);
 
     g2.addWidget(playerBoard, 'button', .6, .78, '#d965bb', "ADD", () => {
@@ -367,14 +397,22 @@ export const init = async model => {
         }
     }
 
-    let getMatrixXYZ = (matrix) => {
-        let xyz = []
-        for (let i = 12; i < 15; i++) {
-            xyz.push(matrix[i]);
+    let movementPlayHandler = () => {
+        if (isPlaying && !isPausing) {
+            delta_time += model.time - last_time;
+            last_time = model.time;
+            if (delta_time >= 1) {
+                if (currTime < 23) {
+                    currTime += 1;
+                    delta_time = 0;
+                    tacticBoard.setTime(currTime);
+                } else {
+                    isPlaying = false;
+                    isPausing = true;
+                }
+            }
         }
-        return xyz;
     }
-
 
     model.animate(() => {
         boardBase.identity().boardHud().scale(1.3);
@@ -408,6 +446,8 @@ export const init = async model => {
         for (let i = 0; i < numPlayers; i++) {
             playerList[i].update(currTime)
         }
+
+        movementPlayHandler();
     });
 }
 
