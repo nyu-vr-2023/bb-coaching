@@ -66,6 +66,15 @@ function G2() {
 
     }
 
+    this.drawDirectionArrow = (x, y, w, h, player, t, scale) => {
+        let position = player.positions[t]
+        let positionOnTrackPad = [x + w * position[0] / 2, y + h * position[1] / 2]
+        scale = cg.def(scale, 1);
+        g2.setColor(player.color);
+        g2.lineWidth(.005 * scale);
+        g2.arrow(positionOnTrackPad, [positionOnTrackPad[0] + scale * Math.cos(player.directions[t]) * .05, positionOnTrackPad[1] + scale * Math.sin(player.directions[t]) * .05]);
+    }
+
     let tacticBoardTrackpad = function (obj, x, y, color, label, action, size, pList){
         size = cg.def(size, 1);
         this.obj = obj;
@@ -79,14 +88,14 @@ function G2() {
             //nothing to do
         }
 
-        this.drawDirectionArrow = (player, t, scale) => {
-            let position = player.positions[t]
-            let positionOnTrackPad = [x + w * position[0] / 2, y + h * position[1] / 2]
-            scale = cg.def(scale, 1);
-            g2.setColor(player.color);
-            g2.lineWidth(.005 * scale);
-            g2.arrow(positionOnTrackPad, [positionOnTrackPad[0] + scale * Math.cos(player.directions[t]) * .05, positionOnTrackPad[1] + scale * Math.sin(player.directions[t]) * .05]);
-        }
+        // this.drawDirectionArrow = (player, t, scale) => {
+        //     let position = player.positions[t]
+        //     let positionOnTrackPad = [x + w * position[0] / 2, y + h * position[1] / 2]
+        //     scale = cg.def(scale, 1);
+        //     g2.setColor(player.color);
+        //     g2.lineWidth(.005 * scale);
+        //     g2.arrow(positionOnTrackPad, [positionOnTrackPad[0] + scale * Math.cos(player.directions[t]) * .05, positionOnTrackPad[1] + scale * Math.sin(player.directions[t]) * .05]);
+        // }
         this.draw = () => {
             g2.textHeight(.09 * size);
             let isPressed = this == activeWidget && (mouseState == 'press' || mouseState == 'drag');
@@ -99,7 +108,7 @@ function G2() {
                 g2.setColor(player.color);
                 let posOnTrackPad = [x + w * pos[0] / 2, y + h * pos[1] / 2];
                 g2.fillRect(posOnTrackPad[0] - .015 * size, posOnTrackPad[1] - .015 * size, .03 * size, .03 * size);
-                this.drawDirectionArrow(player, this.obj.timeButtonValue);
+                g2.drawDirectionArrow(x, y, w, h, player, this.obj.timeButtonValue);
             }
         }
     }
@@ -113,7 +122,6 @@ function G2() {
             return uvz && uvz[0] > x - w / 2 && uvz[0] < x + w / 2 && uvz[1] > y - h / 2 && uvz[1] < y + h / 2;
         }
         this.handleEvent = () => {
-            if (this.obj.visible) {  //finish editing
                 console.log("Dragging from bbCoachingTrackpad ID:" + this.obj.ID)
                 let uvz = g2.getUVZ_R(obj);
                 let player = pList[this.obj.ID]
@@ -124,6 +132,7 @@ function G2() {
                         if (player.endTimeList.length === 0) {
                             player.positions[this.obj.timeStart][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
                             player.positions[this.obj.timeStart][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
+                            player.setAllToInitial(this.obj.timeStart, true);
                         }
                     } else if (this.obj.timeEnd !== -1) {
                         // Only in drawMode could user draw a movement path, otherwise the uvz represents the setting of the end point for the move.
@@ -177,17 +186,16 @@ function G2() {
                         }
                     }
                 }
-            }
         }
 
-        this.drawDirectionArrow = (player, t, scale) => {
-            let position = player.positions[t]
-            let positionOnTrackPad = [x + w * position[0] / 2, y + h * position[1] / 2]
-            scale = cg.def(scale, 1);
-            g2.setColor(player.color);
-            g2.lineWidth(.005 * scale);
-            g2.arrow(positionOnTrackPad, [positionOnTrackPad[0] + scale * Math.cos(player.directions[t]) * .05, positionOnTrackPad[1] + scale * Math.sin(player.directions[t]) * .05]);
-        }
+        // this.drawDirectionArrow = (player, t, scale) => {
+        //     let position = player.positions[t]
+        //     let positionOnTrackPad = [x + w * position[0] / 2, y + h * position[1] / 2]
+        //     scale = cg.def(scale, 1);
+        //     g2.setColor(player.color);
+        //     g2.lineWidth(.005 * scale);
+        //     g2.arrow(positionOnTrackPad, [positionOnTrackPad[0] + scale * Math.cos(player.directions[t]) * .05, positionOnTrackPad[1] + scale * Math.sin(player.directions[t]) * .05]);
+        // }
 
         this.draw = () => {
             g2.textHeight(.09 * size);
@@ -206,7 +214,7 @@ function G2() {
                     g2.setColor(player.color);
                     let posOnTrackPad = [x + w * pos[0] / 2, y + h * pos[1] / 2];
                     g2.fillRect(posOnTrackPad[0] - .015 * size, posOnTrackPad[1] - .015 * size, .03 * size, .03 * size);
-                    this.drawDirectionArrow(player, 0);
+                    g2.drawDirectionArrow(x, y, w, h, player, 0);
                 } else {
                     // if having start point, draw it with time as label
                     let pos = player.positions[start];
@@ -214,14 +222,14 @@ function G2() {
                     let posOnTrackPad = [x + w * pos[0] / 2, y + h * pos[1] / 2];
                     g2.fillRect(posOnTrackPad[0] - .015 * size, posOnTrackPad[1] - .015 * size, .03 * size, .03 * size);
                     if (endList.length === 0) {
-                        this.drawDirectionArrow(player, start);
+                        g2.drawDirectionArrow(x, y, w, h, player, start);
                     }
                     for (let j = 0; j < endList.length; j++) {
                         // if having end point, draw it with time as label
                         let end = endList[j];
                         let start = player.startTimeList[j];
-                        this.drawDirectionArrow(player, start);
-                        this.drawDirectionArrow(player, end);
+                        g2.drawDirectionArrow(x, y, w, h, player, start);
+                        g2.drawDirectionArrow(x, y, w, h, player, end);
 
                         let pos2 = player.positions[end];
                         g2.setColor(player.color);
@@ -234,7 +242,7 @@ function G2() {
                             let posk = player.positions[k]
                             let poskOnTrackPad = [x + w * posk[0] / 2, y + h * posk[1] / 2]
                             g2.fillRect(poskOnTrackPad[0] - .005 * size, poskOnTrackPad[1] - .005 * size, .01 * size, .01 * size);
-                            this.drawDirectionArrow(player, k, .3);
+                            g2.drawDirectionArrow(x, y, w, h, player, k, .3);
                         }
 
                         g2.setColor('black');
@@ -269,9 +277,9 @@ function G2() {
             activeWidget = null;
             let nearestZ = 100000;
             for (let n = 0; n < widgets.length; n++)
-                if (widgets[n].isWithin()) {
+                if (widgets[n].isWithin() && widgets[n].obj.visible) {
                     let uvz = this.getUVZ(widgets[n].obj);
-                    if (uvz && uvz[2] < nearestZ && widgets[n].obj.visible) {
+                    if (uvz && uvz[2] < nearestZ ) {
                         activeWidget = widgets[n];
                         nearestZ = uvz[2];
                     }
@@ -313,14 +321,12 @@ function G2() {
             return uvz && uvz[0] > x - w / 2 && uvz[0] < x + w / 2 && uvz[1] > y - h / 2 && uvz[1] < y + h / 2;
         }
         this.handleEvent = () => {
-            if (this.obj.visible) {
-                // console.log("I clicked button from id:" + obj.ID)
-                if (action && mouseState == 'release' && this.isWithin()) {
-                    action();
-                    activeWidget = null;
-                    if (Array.isArray(label))
-                        this.state = (this.state + 1) % label.length;
-                }
+            // console.log("I clicked button from id:" + obj.ID)
+            if (action && mouseState == 'release' && this.isWithin()) {
+                action();
+                activeWidget = null;
+                if (Array.isArray(label))
+                    this.state = (this.state + 1) % label.length;
             }
         }
         this.draw = () => {
