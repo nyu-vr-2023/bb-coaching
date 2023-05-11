@@ -7,7 +7,14 @@ import {COLORS, MAX_TIME} from "./const.js";
 import {gltfRoot} from "../global.js";
 import {quat} from "../render/math/gl-matrix.js";
 
-let currTime = 0
+// Total time for the tatic is 24s
+const TOTAL_TIME = 24;
+const NUM_POINTS_ON_BOARD = 48;     // The total number of points 
+                                    // drawing on the playerBoard for each player for 24s
+const numTimeFrames = 720;          // Number of the frames for 24s
+const numTimeButtons = 24;          // Number of time buttons in the board
+
+let currTimeframe = 0
 let HUDIsShown = false;      // press right[1] to show hud, press again to hide it
 let hudButtonLock = false;
 let currPlayerIndex = -1;
@@ -16,6 +23,11 @@ let delta_time = 0;
 let last_time = 0;
 let isPlaying = false;
 let isPausing = true;
+
+// The frame gap between 2 time buttons.
+let timeButtonGap = numTimeFrames / numTimeButtons;
+// The refresh time of motion in the scene.
+let moveFreshTime = TOTAL_TIME / numTimeFrames;
 
 let hudButtonHandler = () => {
     if (buttonState.right[1] && buttonState.right[1].pressed && !hudButtonLock) {
@@ -41,12 +53,12 @@ class Player {
         this.color = c;
 
         // store the position of each time frame for this player
-        this.positions = Array.from({length: 24}, () => Object.assign([], initialPosition));
-        this.directions = Array(24).fill(0);
+        this.positions = Array.from({length: numTimeFrames}, () => Object.assign([], initialPosition));
+        this.directions = Array(numTimeFrames).fill(0);
 
-        // split movingPair into startTimeList and endTimeList for trackpad use.
-        this.startTimeList = [];
-        this.endTimeList = [];
+        // split movingPair into startFrameList and endFrameList for trackpad use.
+        this.startFrameList = [];
+        this.endFrameList = [];
     }
 
     pos3D(t) {
@@ -63,7 +75,7 @@ class Player {
 
     // set all the positions later than the current last end pos to be same as the current last end pos.
     setAllFromEnd(last_end, setDirect) {
-        for (let i = last_end + 1; i < 24; i++) {
+        for (let i = last_end + 1; i < numTimeFrames; i++) {
             this.positions[i][0] = this.positions[last_end][0];
             this.positions[i][1] = this.positions[last_end][1];
             if (setDirect) {
@@ -84,7 +96,7 @@ class Player {
     }
 
     resetPosAndDirect() {
-        for (let i = 0; i < 24; i++) {
+        for (let i = 0; i < numTimeFrames; i++) {
             this.positions[i][0] = this.initialPosition[0];
             this.positions[i][1] = this.initialPosition[1];
             this.directions[i] = 0;
@@ -147,16 +159,17 @@ export const init = async model => {
     tacticBoard.visible = false;
     tacticBoard.ID = -1;
     tacticBoard.view = "global"
-    tacticBoard.timeButtonValue = 0;
+    tacticBoard.timeFrameValue = 0;
     tacticBoard.setTime = (timeStamp) => {
-        tacticBoard.timeButton[tacticBoard.timeButtonValue].updateColor('#a0aaba');
-        tacticBoard.timeButtonValue = timeStamp;
-        tacticBoard.timeButton[tacticBoard.timeButtonValue].updateColor('#37373f');
+        tacticBoard.timeButton[Math.floor(tacticBoard.timeFrameValue / timeButtonGap)].updateColor('#a0aaba');
+        tacticBoard.timeFrameValue = timeStamp;
+        tacticBoard.timeButton[Math.floor(tacticBoard.timeFrameValue / timeButtonGap)].updateColor('#37373f');
     }
+    tacticBoard.currTimeframe = currTimeframe;
 
     // add trackpad
     g2.addTrackpad(tacticBoard, .25, .47, '#fad4d4', ' ', () => {
-    }, 1, playerList);
+    }, 1, playerList, timeButtonGap);
 
     // add buttons for all players
     for (let i = 0; i < numPlayers; i++) {
@@ -181,7 +194,7 @@ export const init = async model => {
                 } else {
                     viewTranslate = [0, 0, 4];
                 }
-                let posPlayer = playerList[i].positions[currTime];
+                let posPlayer = playerList[i].positions[currTimeframe];
                 let posScene = [posPlayer[0] * Court.width, posPlayer[2], -posPlayer[1] * Court.height]
                 global.gltfRoot.translation = cg.add(viewTranslate, cg.scale(posScene, -1))
 
@@ -204,13 +217,13 @@ export const init = async model => {
     }
 
     // add play button
-    g2 .addWidget(tacticBoard, 'button', .72, .93, '#a0aaba', "▶︎", () => {
+    g2 .addWidget(tacticBoard, 'button', .815, .93, '#a0aaba', "►", () => {
         if (isPausing === true) {
             isPausing = false
         }
         if (isPlaying === false) {
             isPlaying = true;
-            currTime = 0;
+            currTimeframe = 0;
             last_time = model.time;
             delta_time = 0;
             tacticBoard.setTime(0);
@@ -218,17 +231,29 @@ export const init = async model => {
     })
 
     // add pause button
-    g2 .addWidget(tacticBoard, 'button', .85, .93, '#a0aaba', "||", () => {
+    g2 .addWidget(tacticBoard, 'button', .90, .93, '#a0aaba', "||", () => {
         if (isPlaying === true && isPausing === false) {
             isPausing = true;
         }
     })
 
+    // add reset button
+    g2.addWidget(tacticBoard, 'button', .72, .93, '#a0aaba', "◼︎", () => {
+        if (isPlaying === true) {
+            isPlaying = false;
+            isPausing = true;
+            currTimeframe = 0;
+            tacticBoard.setTime(0);
+            last_time = model.time;
+            delta_time = 0;
+        }
+    })
+
     // add time buttons for tactic board
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < numTimeButtons; i++) {
         tacticBoard.timeButton.push(g2.addWidget(tacticBoard, 'button', .55 + i * .018, .84, '#a0aaba', " ", () => {
-            currTime = i;
-            tacticBoard.setTime(i);
+            currTimeframe = i * timeButtonGap;
+            tacticBoard.setTime(currTimeframe);
         }, 0.36));
     }
 
@@ -243,13 +268,15 @@ export const init = async model => {
         let startIndex = 0;
         let endIndex = 0;
 
-        for (let j = 0; j < 24; j++) {
-            let startTime = startIndex < currPlayer.startTimeList.length ? currPlayer.startTimeList[startIndex] : -1;
-            let endTime = endIndex < currPlayer.endTimeList.length ? currPlayer.endTimeList[startIndex] : -1;
+        for (let j = 0; j < numTimeButtons; j++) {
+            let startFrame = startIndex < currPlayer.startFrameList.length ? currPlayer.startFrameList[startIndex] : -1;
+            let endFrame = endIndex < currPlayer.endFrameList.length ? currPlayer.endFrameList[startIndex] : -1;
             let withinRange = false;
-            if (j === startTime || (startTime < j && j < endTime)) {
+            let startFrame_buttonIndx = Math.floor(startFrame / timeButtonGap);
+            let endFrame_buttonIndx = Math.floor(endFrame / timeButtonGap);
+            if (j === startFrame_buttonIndx || (startFrame_buttonIndx < j && j < endFrame_buttonIndx)) {
                 withinRange = true;
-            } else if (j === endTime) {
+            } else if (j === endFrame_buttonIndx) {
                 withinRange = true;
                 startIndex += 1
                 endIndex += 1;
@@ -280,15 +307,15 @@ export const init = async model => {
             g2.fillText('Player' + i + 'Board' + ' (Draw Mode)', .5, .95, 'center');
         }
         //print initial position
-        let initialPos = currPlayer.startTimeList.length === 0 ? 0 : currPlayer.startTimeList[0];
+        let initialPos = currPlayer.startFrameList.length === 0 ? 0 : currPlayer.startFrameList[0];
         g2.fillText((currPlayer.positions[initialPos][0].toFixed(1)) + ',' + (currPlayer.positions[initialPos][1].toFixed(1)), .9, .68, 'center');
 
         //print existing movements start and end time
-        for (let j = 0; j < Math.min(4, currPlayer.startTimeList.length); j++) {
-            g2.fillText(currPlayer.startTimeList[j].toString(), .73, .68 - 0.08 * (j + 1), 'center');
-            if (j < currPlayer.endTimeList.length) {
+        for (let j = 0; j < Math.min(4, currPlayer.startFrameList.length); j++) {
+            g2.fillText(Math.floor(currPlayer.startFrameList[j] / timeButtonGap).toString(), .73, .68 - 0.08 * (j + 1), 'center');
+            if (j < currPlayer.endFrameList.length) {
                 g2.fillText('-', .77, .68 - 0.08 * (j + 1), 'center');
-                g2.fillText(currPlayer.endTimeList[j].toString(), .81, .68 - 0.08 * (j + 1), 'center');
+                g2.fillText((Math.floor(currPlayer.endFrameList[j] / timeButtonGap)).toString(), .81, .68 - 0.08 * (j + 1), 'center');
             }
         }
         // draw timeButton label
@@ -305,30 +332,32 @@ export const init = async model => {
     playerBoard.timeButton = [];                                                //array used to store the time button widgets
     playerBoard.moveButton = [];                                                // button that indicates the movements of the ith player
     playerBoard.startEditingMovement = false;                          // true by clicking add movement -> can create new movement
-    playerBoard.timeStart = -1;                                        //-1 if haven't set start time; start time if setting end time
-    playerBoard.timeEnd = -1;                                          //-1 if haven't set end time;
+    playerBoard.frameStart = -1;                                        //-1 if haven't set start time; start time if setting end time
+    playerBoard.frameEnd = -1;                                          //-1 if haven't set end time;
     playerBoard.visible = false;
     playerBoard.ID = 0;
     playerBoard.drawMode = false;
     playerBoard.path = [];
+    playerBoard.drawGap = numTimeFrames / NUM_POINTS_ON_BOARD;
 
     playerBoard.identity().scale(.9, .9, .0001).opacity(0);
 
 // Add time buttons for the player i
-    for (let k = 0; k < 24; k++) {
+    for (let k = 0; k < numTimeButtons; k++) {
         playerBoard.timeButton.push(g2.addWidget(playerBoard, 'button', .51 + k * .018, .90, '#a0aaba', " ", () => {
-            currTime = k;
+            let frameIndx = timeButtonGap * k;
+            currTimeframe = frameIndx;
             if (playerBoard.startEditingMovement) {
                 let currPlayer = playerList[playerBoard.ID];
-                let lastEnd = currPlayer.endTimeList.length > 0 ? currPlayer.endTimeList[currPlayer.endTimeList.length - 1] : 0;
-                if (playerBoard.timeStart === -1 && k >= lastEnd) {
-                    playerBoard.timeStart = k;
-                    playerBoard.timeEnd = -1;
-                    currPlayer.startTimeList.push(k);
-                } else if (playerBoard.timeEnd === -1 && k > playerBoard.timeStart) {
-                    playerBoard.timeEnd = k;
-                    currPlayer.endTimeList.push(k);
-                    playerBoard.timeStart = -1;
+                let lastEnd = currPlayer.endFrameList.length > 0 ? currPlayer.endFrameList[currPlayer.endFrameList.length - 1] : 0;
+                if (playerBoard.frameStart === -1 && frameIndx >= lastEnd) {
+                    playerBoard.frameStart = frameIndx;
+                    playerBoard.frameEnd = -1;
+                    currPlayer.startFrameList.push(frameIndx);
+                } else if (playerBoard.frameEnd === -1 && frameIndx > playerBoard.frameStart) {
+                    playerBoard.frameEnd = frameIndx;
+                    currPlayer.endFrameList.push(frameIndx);
+                    playerBoard.frameStart = -1;
 
                     playerBoard.startEditingMovement = false;
                 }
@@ -342,7 +371,7 @@ export const init = async model => {
         tacticBoard.visible = true;
         playerBoard.drawMode = false;
         playerBoard.path = [];
-        currTime = 0;
+        currTimeframe = 0;
         tacticBoard.setTime(0);
     }, 0.9);
 
@@ -355,14 +384,14 @@ export const init = async model => {
 // Add delete button to delete the last interval
     g2.addWidget(playerBoard, 'button', .8, .78, '#7064e0', "DELETE", () => {
         let currPlayer = playerList[playerBoard.ID];
-        if (currPlayer.startTimeList.length === currPlayer.endTimeList.length && currPlayer.startTimeList.length >= 0) {
-            currPlayer.startTimeList.pop();
-            currPlayer.endTimeList.pop();
+        if (currPlayer.startFrameList.length === currPlayer.endFrameList.length && currPlayer.startFrameList.length >= 0) {
+            currPlayer.startFrameList.pop();
+            currPlayer.endFrameList.pop();
 
-            if (currPlayer.endTimeList.length > 0) {
-                let last_end = currPlayer.endTimeList[currPlayer.endTimeList.length - 1];
+            if (currPlayer.endFrameList.length > 0) {
+                let last_end = currPlayer.endFrameList[currPlayer.endFrameList.length - 1];
                 currPlayer.setAllFromEnd(last_end, true);
-                playerBoard.timeEnd = last_end;
+                playerBoard.frameEnd = last_end;
             } else {
                 currPlayer.resetPosAndDirect();
             }
@@ -378,10 +407,10 @@ export const init = async model => {
         }, 0.6));
     }
     g2.addTrackpad(playerBoard, .25, .47, '#fad4d4', ' ', () => {
-    }, 1, playerList);
+    }, 1, playerList, timeButtonGap);
 
-    let isDrawingMode = () => playerList[playerBoard.ID].endTimeList.length > 0
-        && playerList[playerBoard.ID].endTimeList.length === playerList[playerBoard.ID].startTimeList.length
+    let isDrawingMode = () => playerList[playerBoard.ID].endFrameList.length > 0
+        && playerList[playerBoard.ID].endFrameList.length === playerList[playerBoard.ID].startFrameList.length
 
 // handle the on/off of drawMode. Same logic as HudButtonHandler().
     let drawButtonHandler = () => {
@@ -400,9 +429,9 @@ export const init = async model => {
     }
 
     let changeDirection = () => {
-        if (currTime >= 0) {
+        if (currTimeframe >= 0) {
             console.assert(currPlayerIndex >= 0)
-            playerList[currPlayerIndex].directions[currTime] += 2 * model.deltaTime * joyStickState.right.x;
+            playerList[currPlayerIndex].directions[currTimeframe] += 2 * model.deltaTime * joyStickState.right.x;
             if (joyStickState.right.x)
                 console.log("directions:", playerList[currPlayerIndex].directions)
         }
@@ -412,11 +441,11 @@ export const init = async model => {
         if (isPlaying && !isPausing) {
             delta_time += model.time - last_time;
             last_time = model.time;
-            if (delta_time >= 1) {
-                if (currTime < 23) {
-                    currTime += 1;
+            if (delta_time >= moveFreshTime) {
+                if (currTimeframe < numTimeFrames - 1) {
+                    currTimeframe += 1;
                     delta_time = 0;
-                    tacticBoard.setTime(currTime);
+                    tacticBoard.setTime(currTimeframe);
                 } else {
                     isPlaying = false;
                     isPausing = true;
@@ -455,7 +484,7 @@ export const init = async model => {
 
         }
         for (let i = 0; i < numPlayers; i++) {
-            playerList[i].update(currTime)
+            playerList[i].update(currTimeframe)
         }
 
         movementPlayHandler();

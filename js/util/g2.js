@@ -55,13 +55,13 @@ function G2() {
         return widgets[widgets.length - 1];
     }
 
-    this.addTrackpad = (obj, x, y, color, label, action, size, pList) => {
+    this.addTrackpad = (obj, x, y, color, label, action, size, pList, timeButtonGap) => {
         // console.log("Current Player ID in trackPad:" + obj.ID)
         if (obj.ID === -1){
             widgets.push(new tacticBoardTrackpad(obj, x, y, color, label, action, size, pList));
         }
         else{
-            widgets.push(new playerBoardTrackpad(obj, x, y, color, label, action, size, pList));
+            widgets.push(new playerBoardTrackpad(obj, x, y, color, label, action, size, pList, timeButtonGap));
         }
 
     }
@@ -104,16 +104,17 @@ function G2() {
             g2.setColor(color, isPressed ? .375 : this.isWithin() ? .475 : .5);
             for (let i = 0; i < pList.length; i++) {
                 let player = pList[i];
-                let pos = player.positions[this.obj.timeButtonValue];;
+                let pos = player.positions[this.obj.timeFrameValue];;
                 g2.setColor(player.color);
+                console.log(pos);
                 let posOnTrackPad = [x + w * pos[0] / 2, y + h * pos[1] / 2];
                 g2.fillRect(posOnTrackPad[0] - .015 * size, posOnTrackPad[1] - .015 * size, .03 * size, .03 * size);
-                g2.drawDirectionArrow(x, y, w, h, player, this.obj.timeButtonValue);
+                g2.drawDirectionArrow(x, y, w, h, player, this.obj.timeFrameValue);
             }
         }
     }
 
-    let playerBoardTrackpad = function (obj, x, y, color, label, action, size, pList) {
+    let playerBoardTrackpad = function (obj, x, y, color, label, action, size, pList, timeButtonGap) {
         size = cg.def(size, 1);
         this.obj = obj;
         let w = .45 * size, h = .84 * size;
@@ -127,19 +128,19 @@ function G2() {
                 let player = pList[this.obj.ID]
                 if (uvz && this.obj.ID !== -1) {
                     // Determine position in which time point (start or end) is changing.
-                    if (this.obj.timeStart !== -1) {
+                    if (this.obj.frameStart !== -1) {
                         // console.log("Can start dragging")
-                        if (player.endTimeList.length === 0) {
-                            player.positions[this.obj.timeStart][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
-                            player.positions[this.obj.timeStart][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
-                            player.setAllToInitial(this.obj.timeStart, true);
+                        if (player.endFrameList.length === 0) {
+                            player.positions[this.obj.frameStart][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
+                            player.positions[this.obj.frameStart][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
+                            player.setAllToInitial(this.obj.frameStart, true);
                         }
-                    } else if (this.obj.timeEnd !== -1) {
+                    } else if (this.obj.frameEnd !== -1) {
                         // Only in drawMode could user draw a movement path, otherwise the uvz represents the setting of the end point for the move.
                         if (!this.obj.drawMode) {
-                            player.positions[this.obj.timeEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
-                            player.positions[this.obj.timeEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
-                            player.setAllFromEnd(this.obj.timeEnd, false)
+                            player.positions[this.obj.frameEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
+                            player.positions[this.obj.frameEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
+                            player.setAllFromEnd(this.obj.frameEnd, false)
                         } else {
                             if (g2.mouseState() == 'press') {
                                 this.obj.path = []
@@ -163,9 +164,9 @@ function G2() {
                 }
 
                 // resample the draw path and map it to the intermedia points for the movement
-                if (player.endTimeList.length > 0 && player.startTimeList.length === player.endTimeList.length) {
-                    let start = player.startTimeList[player.startTimeList.length - 1]
-                    let end = player.endTimeList[player.endTimeList.length - 1]
+                if (player.endFrameList.length > 0 && player.startFrameList.length === player.endFrameList.length) {
+                    let start = player.startFrameList[player.startFrameList.length - 1]
+                    let end = player.endFrameList[player.endFrameList.length - 1]
                     let resample_length = end - start + 1;
                     if (this.obj.path.length > 1) {
                         let re_line = cg.resampleCurve(this.obj.path, resample_length)
@@ -205,8 +206,8 @@ function G2() {
             g2.setColor(color, isPressed ? .375 : this.isWithin() ? .475 : .5);
             for (let i = 0; i < pList.length; i++) {
                 let player = pList[i];
-                let start = player.startTimeList.length === 0 ? -1 : player.startTimeList[0];
-                let endList = player.endTimeList;
+                let start = player.startFrameList.length === 0 ? -1 : player.startFrameList[0];
+                let endList = player.endFrameList;
 
                 // if no point selected, draw the initial pos
                 if (start === -1) {
@@ -227,7 +228,7 @@ function G2() {
                     for (let j = 0; j < endList.length; j++) {
                         // if having end point, draw it with time as label
                         let end = endList[j];
-                        let start = player.startTimeList[j];
+                        let start = player.startFrameList[j];
                         g2.drawDirectionArrow(x, y, w, h, player, start);
                         g2.drawDirectionArrow(x, y, w, h, player, end);
 
@@ -238,7 +239,7 @@ function G2() {
 
                         // draw the intermedia points from start to end
                         g2.setColor(player.color);
-                        for (let k = start; k <= end; k++) {
+                        for (let k = start; k <= end; k = k + this.obj.drawGap) {
                             let posk = player.positions[k]
                             let poskOnTrackPad = [x + w * posk[0] / 2, y + h * posk[1] / 2]
                             g2.fillRect(poskOnTrackPad[0] - .005 * size, poskOnTrackPad[1] - .005 * size, .01 * size, .01 * size);
@@ -247,12 +248,12 @@ function G2() {
 
                         g2.setColor('black');
                         g2.textHeight(.025);
-                        g2.fillText(end + '', pos2OnTrackPad[0], pos2OnTrackPad[1], 'center');
+                        g2.fillText(Math.floor(end / timeButtonGap) + '', pos2OnTrackPad[0], pos2OnTrackPad[1], 'center');
                     }
 
                     g2.setColor('black');
                     g2.textHeight(.025);
-                    g2.fillText(start + '', posOnTrackPad[0], posOnTrackPad[1], 'center');
+                    g2.fillText(Math.floor(start / timeButtonGap) + '', posOnTrackPad[0], posOnTrackPad[1], 'center');
                 }
             }
             g2.setColor('black');
