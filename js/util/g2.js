@@ -76,12 +76,18 @@ function G2() {
     }
 
     this.mapLineToPlayer = (x, y, w, h, player, start, end, resampled_line) => {
-        for (let i = end - start - 1; i >= 1; i--) {
-            player.positions[start + i][0] = resampled_line[i][0];
-            player.positions[start + i][1] = resampled_line[i][1];
-            player.positions[start + i][2] = 0
-            let dx = player.positions[start + i + 1][0] - player.positions[start + i][0];
-            let dy = player.positions[start + i + 1][1] - player.positions[start + i][1];
+        for (let i = end - start - 1; i >= 0; i--) {
+            if (i != 0) {
+                player.positions[start + i][0] = resampled_line[i][0];
+                player.positions[start + i][1] = resampled_line[i][1];
+                player.positions[start + i][2] = 0
+                var dx = player.positions[start + i + 1][0] - player.positions[start + i][0];
+                var dy = player.positions[start + i + 1][1] - player.positions[start + i][1];
+            } else {
+                // for the start point we only change its direction, not change its position.
+                var dx = player.positions[start + i + 1][0] - resampled_line[i][0];
+                var dy = player.positions[start + i + 1][1] - resampled_line[i][1];
+            }
             let arctan = Math.atan((dy * h) / (dx * w));
             if ((dx > 0 && dy >= 0) || (dx > 0 && dy <= 0)) {
                 player.directions[start + i] = arctan;
