@@ -75,6 +75,24 @@ function G2() {
         g2.arrow(positionOnTrackPad, [positionOnTrackPad[0] + scale * Math.cos(player.directions[t]) * .05, positionOnTrackPad[1] + scale * Math.sin(player.directions[t]) * .05]);
     }
 
+    this.mapLineToPlayer = (x, y, w, h, player, start, end, resampled_line) => {
+        for (let i = end - start - 1; i >= 1; i--) {
+            player.positions[start + i][0] = resampled_line[i][0];
+            player.positions[start + i][1] = resampled_line[i][1];
+            player.positions[start + i][2] = 0
+            let dx = player.positions[start + i + 1][0] - player.positions[start + i][0];
+            let dy = player.positions[start + i + 1][1] - player.positions[start + i][1];
+            let arctan = Math.atan((dy * h) / (dx * w));
+            if ((dx > 0 && dy >= 0) || (dx > 0 && dy <= 0)) {
+                player.directions[start + i] = arctan;
+            } else if ((dx < 0 && dy >= 0) || (dx < 0 && dy < 0)) {
+                player.directions[start + i] = arctan + Math.PI
+            } else if (dx === 0) {
+                player.directions[start + i] = dy >= 0 ? Math.PI / 2 : -Math.PI;
+            }
+        }
+    }
+
     let tacticBoardTrackpad = function (obj, x, y, color, label, action, size, pList){
         size = cg.def(size, 1);
         this.obj = obj;
@@ -106,7 +124,6 @@ function G2() {
                 let player = pList[i];
                 let pos = player.positions[this.obj.timeFrameValue];;
                 g2.setColor(player.color);
-                console.log(pos);
                 let posOnTrackPad = [x + w * pos[0] / 2, y + h * pos[1] / 2];
                 g2.fillRect(posOnTrackPad[0] - .015 * size, posOnTrackPad[1] - .015 * size, .03 * size, .03 * size);
                 g2.drawDirectionArrow(x, y, w, h, player, this.obj.timeFrameValue);
@@ -140,7 +157,12 @@ function G2() {
                         if (!this.obj.drawMode) {
                             player.positions[this.obj.frameEnd][0] = Math.max(0, Math.min(1, (uvz[0] - (x - w / 2)) / w)) * 2 - 1;
                             player.positions[this.obj.frameEnd][1] = Math.max(0, Math.min(1, (uvz[1] - (y - h / 2)) / h)) * 2 - 1;
-                            player.setAllFromEnd(this.obj.frameEnd, false)
+                            player.setAllFromEnd(this.obj.frameEnd, false);
+                            this.obj.path = [];
+                            let start = player.startFrameList[player.startFrameList.length - 1];
+                            let end = player.endFrameList[player.endFrameList.length - 1];
+                            let re_line = cg.resampleCurve([player.positions[start], player.positions[end]], end - start + 1);
+                            g2.mapLineToPlayer(x, y, w, h, player, start, end, re_line);
                         } else {
                             if (g2.mouseState() == 'press') {
                                 this.obj.path = []
@@ -169,22 +191,13 @@ function G2() {
                     let end = player.endFrameList[player.endFrameList.length - 1]
                     let resample_length = end - start + 1;
                     if (this.obj.path.length > 1) {
-                        let re_line = cg.resampleCurve(this.obj.path, resample_length)
-                        for (let i = end - start - 1; i >= 1; i--) {
-                            player.positions[start + i][0] = Math.max(0, Math.min(1, (re_line[i][0] - (x - w / 2)) / w)) * 2 - 1;
-                            player.positions[start + i][1] = Math.max(0, Math.min(1, (re_line[i][1] - (y - h / 2)) / h)) * 2 - 1;
-                            player.positions[start + i][2] = 0
-                            let dx = player.positions[start + i + 1][0] - player.positions[start + i][0];
-                            let dy = player.positions[start + i + 1][1] - player.positions[start + i][1];
-                            let arctan = Math.atan((dy * h) / (dx * w));
-                            if ((dx > 0 && dy >= 0) || (dx > 0 && dy <= 0)) {
-                                player.directions[start + i] = arctan;
-                            } else if ((dx < 0 && dy >= 0) || (dx < 0 && dy < 0)) {
-                                player.directions[start + i] = arctan + Math.PI
-                            } else if (dx === 0) {
-                                player.directions[start + i] = dy >= 0 ? Math.PI / 2 : -Math.PI;
-                            }
+                        let re_line = cg.resampleCurve(this.obj.path, resample_length);
+                        // convert global positions to positions on board
+                        for (let i = 0; i < re_line.length; i++) {
+                            re_line[i][0] = Math.max(0, Math.min(1, (re_line[i][0] - (x - w / 2)) / w)) * 2 - 1;
+                            re_line[i][1] = Math.max(0, Math.min(1, (re_line[i][1] - (y - h / 2)) / h)) * 2 - 1;
                         }
+                        g2.mapLineToPlayer(x, y, w, h, player, start, end, re_line);
                     }
                 }
         }
