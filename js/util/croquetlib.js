@@ -4,6 +4,7 @@ import {updateModel} from "../scenes/demoCroquet.js";
 import {controllerMatrix, buttonState, joyStickState} from "../render/core/controllerInput.js";
 import {initAvatar} from "../primitive/avatar.js";
 import * as global from "../global.js";
+import {NUM_PLAYERS} from "../scenes/const.js";
 
 // YOU SHOULD OBTAIN YOUR OWN apiKey FROM: croquet.io/keys
 
@@ -29,6 +30,20 @@ let drawAvatar = actor => {
 
 let drawView = () => {
 
+}
+
+function collectPreset() {
+    if (window.view.role !== -1 || window.view.playerList === undefined || window.view.playerList.length !== NUM_PLAYERS) return;
+    let playerPresetList = [];
+    for (let i = 0; i < NUM_PLAYERS; i++) {
+        playerPresetList.push({
+            directions: window.view.playerList[i].directions,
+            positions: window.view.playerList[i].positions,
+            startFrameList: window.view.playerList[i].startFrameList,
+            endFrameList: window.view.playerList[i].endFrameList
+        });
+    }
+    return playerPresetList;
 }
 
 
@@ -224,6 +239,7 @@ export class View extends Croquet.View {
             window.view = this;
 
         }
+        const preset = collectPreset()
         this.updateScene({
             who: this.viewId,
             what: state,
@@ -234,8 +250,8 @@ export class View extends Croquet.View {
                 "names": window.names,
                 "whoIndex": window.whoIndex,
                 "currTime": window.view.currTime,
-                "playerList": window.playerList
-            }
+            },
+            preset: preset
         });
     }
 

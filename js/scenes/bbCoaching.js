@@ -5,11 +5,12 @@ import {g2} from "../util/g2.js";
 import {buttonState, joyStickState, viewMatrix} from "../render/core/controllerInput.js";
 import {COLORS, MAX_TIME} from "./const.js";
 
+
 // Total time for the tatic is 24s
 const TOTAL_TIME = 24;
 const NUM_POINTS_ON_BOARD = 48;     // The total number of points 
                                     // drawing on the playerBoard for each player for 24s
-const numTimeFrames = 720;          // Number of the frames for 24s
+const numTimeFrames = 48;          // Number of the frames for 24s
 const numTimeButtons = 24;          // Number of time buttons in the board
 const numPlayers = 5
 
@@ -44,7 +45,7 @@ window.startInit = cg.def(window.startInit, false);
 
 let initialPosList = [[-.6, .4, 0], [.6, .4, 0], [-.9, .9, 0], [.3, .7, 0], [.9, .9, 0]]
 
-class Player {
+export class Player {
     constructor(gltfUrl, index, initialPosition, c) {
         this.node = new Gltf2Node({url: gltfUrl});
         global.gltfRoot.addNode(this.node);
@@ -126,7 +127,7 @@ export const init = async model => {
     let currCourt;
     let boardBase;
     let fieldMap;
-    let playerList;
+    // let playerList;
     let drawButtonHandler;
     let movementPlayHandler;
     let changeDirection;
@@ -139,11 +140,11 @@ export const init = async model => {
         currCourt = new Court('./media/gltf/bbCourt/scene.gltf')
         boardBase = model.add()
         fieldMap = boardBase.add('cube').texture('../media/textures/field.png');
-        playerList = []
+        window.view.playerList = []
 
 
         for (let i = 0; i < numPlayers; i++) {
-            playerList.push(new Player("./media/gltf/Basketball_Player/Basketball_Player.gltf", i, initialPosList[i], COLORS[i]));
+            window.view.playerList.push(new Player("./media/gltf/Basketball_Player/Basketball_Player.gltf", i, initialPosList[i], COLORS[i]));
         }
 
         tacticBoard = boardBase.add('cube').texture(() => {
@@ -180,7 +181,7 @@ export const init = async model => {
 
         // add trackpad
         g2.addTrackpad(tacticBoard, .25, .47, '#fad4d4', ' ', () => {
-        }, 1, playerList, timeButtonGap);
+        }, 1, window.view.playerList, timeButtonGap);
 
         // add buttons for all players
         for (let i = 0; i < numPlayers; i++) {
@@ -205,15 +206,15 @@ export const init = async model => {
                     } else {
                         viewTranslate = [0, 0, 4];
                     }
-                    let posPlayer = playerList[i].positions[window.view.currTime];
+                    let posPlayer = window.view.playerList[i].positions[window.view.currTime];
                     let posScene = [posPlayer[0] * Court.width, posPlayer[2], -posPlayer[1] * Court.height]
                     global.gltfRoot.translation = cg.add(viewTranslate, cg.scale(posScene, -1))
 
                     // set rotation
                     // let rotation = quat.create();
-                    // let angel = playerList[i].directions[currTime] - Math.PI / 2;
+                    // let angel = window.view.playerList[i].directions[currTime] - Math.PI / 2;
                     // console.log("rotation angel:")
-                    // quat.rotateY(rotation, rotation, playerList[i].directions[currTime] - Math.PI / 2);
+                    // quat.rotateY(rotation, rotation, window.view.playerList[i].directions[currTime] - Math.PI / 2);
                     // global.gltfRoot.rotation = rotation
 
                     tacticBoard.view = "local";
@@ -278,7 +279,7 @@ export const init = async model => {
         // update the color of each time button based on the player and time frame selected in the player board
         updateTimeButtonInPlayerBoard = () => {
             let currBoard = boardBase._children[0];
-            let currPlayer = playerList[currPlayerIndex];
+            let currPlayer = window.view.playerList[currPlayerIndex];
             let startIndex = 0;
             let endIndex = 0;
 
@@ -307,7 +308,7 @@ export const init = async model => {
         // create player boards
         playerBoard = boardBase.add('cube').texture(() => {
             let i = currPlayerIndex
-            let currPlayer = playerList[i];
+            let currPlayer = window.view.playerList[i];
             g2.setColor('white');
             g2.fillRect(0, 0, 1, 1);
             g2.textHeight(.04)
@@ -362,7 +363,7 @@ export const init = async model => {
                 let frameIndx = timeButtonGap * k;
                 window.view.currTime = frameIndx;
                 if (playerBoard.startEditingMovement) {
-                    let currPlayer = playerList[playerBoard.ID];
+                    let currPlayer = window.view.playerList[playerBoard.ID];
                     let lastEnd = currPlayer.endFrameList.length > 0 ? currPlayer.endFrameList[currPlayer.endFrameList.length - 1] : 0;
                     if (playerBoard.frameStart === -1 && frameIndx >= lastEnd) {
                         playerBoard.frameStart = frameIndx;
@@ -397,7 +398,7 @@ export const init = async model => {
 
 // Add delete button to delete the last interval
         g2.addWidget(playerBoard, 'button', .8, .78, '#7064e0', "DELETE", () => {
-            let currPlayer = playerList[playerBoard.ID];
+            let currPlayer = window.view.playerList[playerBoard.ID];
             if (currPlayer.startFrameList.length === currPlayer.endFrameList.length && currPlayer.startFrameList.length >= 0) {
                 currPlayer.startFrameList.pop();
                 currPlayer.endFrameList.pop();
@@ -421,10 +422,10 @@ export const init = async model => {
             }, 0.6));
         }
         g2.addTrackpad(playerBoard, .25, .47, '#fad4d4', ' ', () => {
-        }, 1, playerList, timeButtonGap);
+        }, 1, window.view.playerList, timeButtonGap);
 
-        isDrawingMode = () => playerList[playerBoard.ID].endFrameList.length > 0
-            && playerList[playerBoard.ID].endFrameList.length === playerList[playerBoard.ID].startFrameList.length
+        isDrawingMode = () => window.view.playerList[playerBoard.ID].endFrameList.length > 0
+            && window.view.playerList[playerBoard.ID].endFrameList.length === window.view.playerList[playerBoard.ID].startFrameList.length
 
 // handle the on/off of drawMode. Same logic as HudButtonHandler().
         drawButtonHandler = () => {
@@ -445,9 +446,9 @@ export const init = async model => {
         changeDirection = () => {
             if (window.view.currTime >= 0) {
                 console.assert(currPlayerIndex >= 0)
-                playerList[currPlayerIndex].directions[window.view.currTime] += 2 * model.deltaTime * joyStickState.right.x;
+                window.view.playerList[currPlayerIndex].directions[window.view.currTime] += 2 * model.deltaTime * joyStickState.right.x;
                 if (joyStickState.right.x)
-                    console.log("directions:", playerList[currPlayerIndex].directions)
+                    console.log("directions:", window.view.playerList[currPlayerIndex].directions)
             }
         }
 
@@ -499,7 +500,7 @@ export const init = async model => {
             }
 
             for (let i = 0; i < numPlayers; i++) {
-                playerList[i].update(window.view.currTime)
+                window.view.playerList[i].update(window.view.currTime)
             }
 
             movementPlayHandler();

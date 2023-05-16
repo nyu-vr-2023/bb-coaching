@@ -1,4 +1,5 @@
 import * as croquet from "../util/croquetlib.js";
+import {NUM_PLAYERS} from "./const.js";
 // import {buttonState} from "../render/core/controllerInput.js";
 
 window.names = [];
@@ -6,6 +7,20 @@ window.userID = -1;
 for (let i = 0; i < 5 + 1; i++) window.names.push(false);
 window.whoIndex = {};
 let rightTriggerReleaseCount = 0;
+
+
+let loadPresets = (preset) => {
+    if (preset === undefined ) return;
+    console.log("loading e playList to window.view.playerList")
+    console.log(preset)
+    if (window.view.playerList === undefined || window.view.playerList.length != NUM_PLAYERS) return;
+    for (let i = 0; i < NUM_PLAYERS ; i++) {
+        window.view.playerList[i].directions = [...preset[i].directions];
+        window.view.playerList[i].positions = [...preset[i].positions];
+        window.view.playerList[i].startFrameList = [...preset[i].startFrameList];
+        window.view.playerList[i].endFrameList = [...preset[i].endFrameList];
+    }
+}
 
 export let updateModel = e => {
     console.log("e")
@@ -15,7 +30,7 @@ export let updateModel = e => {
         console.log(e.state)
         window.view.role = e.state["whoIndex"][window.view.viewId]
         window.view.currTime = e.state["currTime"];
-        // window.view.playerList = e.state["playerList"]
+        loadPresets(e.preset)
     }
     if (!(e.who in window.whoIndex)) {
         for (let i = 0; i < 5 + 1; i++) {
@@ -65,7 +80,7 @@ export let updateModel = e => {
 }
 
 export const init = async model => {
-    croquet.register('croquetDemo_1.163');
+    croquet.register('croquetDemo_1.1666');
     model.animate(() => {
         // startInit = true;
     });
