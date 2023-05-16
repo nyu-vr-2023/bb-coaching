@@ -2,7 +2,7 @@ import * as global from "../global.js";
 import * as cg from "../render/core/cg.js";
 import {Gltf2Node} from "../render/nodes/gltf2.js";
 import {g2} from "../util/g2.js";
-import {buttonState, joyStickState, viewMatrix} from "../render/core/controllerInput.js";
+import {controllerMatrix, buttonState, joyStickState, viewMatrix} from "../render/core/controllerInput.js";
 import {COLORS, MAX_TIME} from "./const.js";
 import {gltfRoot} from "../global.js";
 import {quat} from "../render/math/gl-matrix.js";
@@ -23,6 +23,28 @@ let delta_time = 0;
 let last_time = 0;
 let isPlaying = false;
 let isPausing = true;
+
+// --- Dribbling simulation (dumb version) --- ↓↓↓ //
+const ball_r = .12;                 // the radius of the basketball
+const g = [0, -9.81, 0];
+let ballHolding = false;
+let patLock = false;
+let dt = 0;
+let t = Date.now() / 1000;
+let ballIsShown = false;
+let ballButtonLock = false;
+
+let ballShownHandler = () => {
+    if (buttonState.left[1] && buttonState.left[1].pressed && !ballButtonLock) {
+        ballIsShown = !ballIsShown;
+        ballButtonLock = true;
+    }
+
+    if (buttonState.left[1] && !buttonState.left[1].pressed) {
+        ballButtonLock = false;
+    }
+}
+// --- Dribbling simulation (dumb version) --- //
 
 // The frame gap between 2 time buttons.
 let timeButtonGap = numTimeFrames / numTimeButtons;
@@ -454,6 +476,31 @@ export const init = async model => {
         }
     }
 
+    // --- Dribbling simulation (dumb version) --- ↓↓↓ //
+    let ball = model.add('sphere').texture('../media/textures/basketball_sph.png').scale(ball_r);
+    ball.loc = [0,.8,0];
+    ball.v = [0,0,0];
+
+    let simulating_dribbling = (ball) => {
+        let height_hand = controllerMatrix.left[13];
+        let vp = cg.add(cg.scale(g, dt), ball.v);
+        ball.loc = cg.add(ball.loc, cg.scale(cg.mix(ball.v, vp, .5), dt));
+        ball.v = vp;
+        if (ball.loc[1] < ball_r) {
+            ball.loc[1] = ball_r;
+            ball.v[1] = -ball.v[1];
+            patLock = false;
+        }
+        if (ball.loc[1] >=height_hand && !patLock) {
+            ball.v[1] = -2;
+            patLock = true;
+        }
+        ball.loc[0] = controllerMatrix.left[12];
+        ball.loc[2] = controllerMatrix.left[14];
+    }
+    // --- Dribbling simulation (dumb version) --- //
+
+
     model.animate(() => {
         boardBase.identity().boardHud().scale(1.3);
 
@@ -488,6 +535,32 @@ export const init = async model => {
         }
 
         movementPlayHandler();
+
+
+        // --- Dribbling simulation (dumb version) --- ↓↓↓ //
+        ballShownHandler();
+        let nt = model.time;
+        dt = nt - t;
+        t = nt;
+
+        if (ballIsShown) {
+            if (buttonState.left[0].pressed) {
+                ballHolding = true;
+                ball.loc = cg.add(controllerMatrix.left.slice(12, 15), cg.scale(controllerMatrix.left.slice(8, 11), -.1));
+            } else if (ballHolding) {
+                let new_loc = cg.add(controllerMatrix.left.slice(12, 15), cg.scale(controllerMatrix.left.slice(8, 11), -.1));
+                ball.v = [0,0,0];
+                ball.loc = new_loc;
+                simulating_dribbling(ball);
+                ballHolding = false;
+            } else {
+                simulating_dribbling(ball);
+            }
+        } else {
+            ball.loc = [300,300,300];
+        }
+        ball.setMatrix(cg.mMultiply(cg.mTranslate(ball.loc), cg.mScale(ball_r)));
+        // --- Dribbling simulation (dumb version) --- //
     });
 }
 
