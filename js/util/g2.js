@@ -106,7 +106,6 @@ function G2() {
                 let player = pList[i];
                 let pos = player.positions[this.obj.timeFrameValue];;
                 g2.setColor(player.color);
-                console.log(pos);
                 let posOnTrackPad = [x + w * pos[0] / 2, y + h * pos[1] / 2];
                 g2.fillRect(posOnTrackPad[0] - .015 * size, posOnTrackPad[1] - .015 * size, .03 * size, .03 * size);
                 g2.drawDirectionArrow(x, y, w, h, player, this.obj.timeFrameValue);

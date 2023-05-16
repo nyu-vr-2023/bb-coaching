@@ -1,15 +1,72 @@
 import * as croquet from "../util/croquetlib.js";
+// import {buttonState} from "../render/core/controllerInput.js";
+
+window.names = [];
+window.userID = -1;
+for (let i = 0; i < 5 + 1; i++) window.names.push(false);
+window.whoIndex = {};
+let rightTriggerReleaseCount = 0;
 
 export let updateModel = e => {
-    if(window.demoDemoCroquetState) { // use window.demo[your-demo-name]State to see if the demo is active. Only update the croquet interaction when the demo is active.
-        if(e.what == "rightTriggerRelease") {
-            window.clay.model.add("cube").color(...e.info).setMatrix(e.where).scale(0.03);
-        }
+    console.log("e")
+    console.log(e)
+    if (e.state["role"] === -1 && window.view.role !== -1) {
+        console.log("e.state")
+        console.log(e.state)
+        window.view.role = e.state["whoIndex"][window.view.viewId]
+        window.view.currTime = e.state["currTime"];
+        // window.view.playerList = e.state["playerList"]
     }
+    if (!(e.who in window.whoIndex)) {
+        for (let i = 0; i < 5 + 1; i++) {
+            if (!window.names[i]) {
+                window.whoIndex[e.who] = i - 1;
+                window.names[i] = e.who;
+                console.log("Name: ", window.names[i])
+                console.log("Setting role of ", e.who, "to:", i - 1)
+                console.log("Window.names:", window.names)
+                console.log("window.whoIndex", window.whoIndex)
+                return;
+            }
+        }
+        console.error("Should never get here!!!")
+    }
+
+    if (window.view === undefined) {
+        return;
+    }
+    console.assert(window.view !== undefined)
+    const myViewId = window.view.viewId;
+    // console.log("My viewId:", myViewId);
+    // console.log("e.who");
+    // console.log(e.who)
+    if (e.who === myViewId && (e.what === "rightTriggerRelease" || e.what === "release")) {
+        rightTriggerReleaseCount += 1;
+    }
+    if (window.startInit === undefined || window.startInit === false) {
+        if (e.who === myViewId && rightTriggerReleaseCount === 10) {
+            // if (e.who === myViewId && e.what === "release") {
+            window.startInit = true;
+            console.log(myViewId)
+            console.log("e")
+            console.log(e)
+            console.log("Now can enter bbCoaching")
+            console.log(window.view)
+
+        }
+    } else if (e.who === myViewId && rightTriggerReleaseCount === 20) {
+        window.role = -1; // coach
+        console.log("role set to coach")
+    }
+    console.log("R trigger no.", rightTriggerReleaseCount);
+
+
+    // console.log(window)
 }
 
 export const init = async model => {
-    croquet.register('croquetDemo_1.0');
+    croquet.register('croquetDemo_1.163');
     model.animate(() => {
+        // startInit = true;
     });
- }
+}
