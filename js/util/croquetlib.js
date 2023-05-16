@@ -132,6 +132,9 @@ export class View extends Croquet.View {
 
         this.currTime = 0;
         window.view = this;
+        this.noCoach = true;
+        this.startInit = false;
+        this.role = undefined;
 
         croquetModel.actors.forEach(actor => this.addPawn(actor));
 
@@ -246,10 +249,11 @@ export class View extends Croquet.View {
             where: pos,
             info: info,
             state: {
-                "role": window.role,
+                "role": window.view.role,
                 "names": window.names,
                 "whoIndex": window.whoIndex,
                 "currTime": window.view.currTime,
+                "startInit": window.view.startInit,
             },
             preset: preset
         });

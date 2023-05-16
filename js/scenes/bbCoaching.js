@@ -41,8 +41,6 @@ let hudButtonHandler = () => {
     }
 }
 
-window.startInit = cg.def(window.startInit, false);
-
 let initialPosList = [[-.6, .4, 0], [.6, .4, 0], [-.9, .9, 0], [.3, .7, 0], [.9, .9, 0]]
 
 export class Player {
@@ -135,7 +133,21 @@ export const init = async model => {
     let updateTimeButtonInPlayerBoard;
     let playerBoard;
     let tacticBoard;
-    if (window.startInit) {
+    let localViewIndex = -1;
+
+    function switchLocalView(i) {
+        let viewTranslate;
+        if (window.vr) {
+            viewTranslate = [0, 0, 1];
+        } else {
+            viewTranslate = [0, 0, 4];
+        }
+        let posPlayer = window.view.playerList[i].positions[window.view.currTime];
+        let posScene = [posPlayer[0] * Court.width, posPlayer[2], -posPlayer[1] * Court.height]
+        global.gltfRoot.translation = cg.add(viewTranslate, cg.scale(posScene, -1))
+    }
+
+    if (window.view.startInit) {
         console.log("starting init!")
         currCourt = new Court('./media/gltf/bbCourt/scene.gltf')
         boardBase = model.add()
@@ -170,8 +182,8 @@ export const init = async model => {
         tacticBoard.timeButton = [];                                                //array of size 24 used to store the time button widgets
         tacticBoard.visible = false;
         tacticBoard.ID = -1;
-        tacticBoard.view = "global"
         tacticBoard.timeFrameValue = 0;
+        tacticBoard.isTacticBoard = true;
         tacticBoard.setTime = (timeStamp) => {
             tacticBoard.timeButton[Math.floor(tacticBoard.timeFrameValue / timeButtonGap)].updateColor('#a0aaba');
             tacticBoard.timeFrameValue = timeStamp;
@@ -194,37 +206,17 @@ export const init = async model => {
                 playerBoard.path = [];
                 playerBoard.drawMode = false;
 
-                updateTimeButtonInPlayerBoard();
+                playerBoard.setTimeButtons();
             }, 0.9);
 
             g2.addWidget(tacticBoard, 'button', .85, .12 + i * .14, COLORS[i], "View", () => {
-                if (tacticBoard.view == "global") {
-                    // set translation
-                    let viewTranslate;
-                    if (window.vr) {
-                        viewTranslate = [0, 0, 1];
-                    } else {
-                        viewTranslate = [0, 0, 4];
-                    }
-                    let posPlayer = window.view.playerList[i].positions[window.view.currTime];
-                    let posScene = [posPlayer[0] * Court.width, posPlayer[2], -posPlayer[1] * Court.height]
-                    global.gltfRoot.translation = cg.add(viewTranslate, cg.scale(posScene, -1))
-
-                    // set rotation
-                    // let rotation = quat.create();
-                    // let angel = window.view.playerList[i].directions[currTime] - Math.PI / 2;
-                    // console.log("rotation angel:")
-                    // quat.rotateY(rotation, rotation, window.view.playerList[i].directions[currTime] - Math.PI / 2);
-                    // global.gltfRoot.rotation = rotation
-
-                    tacticBoard.view = "local";
+                if (localViewIndex === -1) {
+                    localViewIndex = i;
                 } else {
                     global.gltfRoot.translation = [0, 0, 0];
                     global.gltfRoot.rotation = [0, 0, 0, 1];
-                    tacticBoard.view = "global";
+                    localViewIndex = -1;
                 }
-
-
             }, .9);
         }
 
@@ -264,7 +256,7 @@ export const init = async model => {
         // add time buttons for tactic board
         for (let i = 0; i < numTimeButtons; i++) {
             tacticBoard.timeButton.push(g2.addWidget(tacticBoard, 'button', .55 + i * .018, .84, '#a0aaba', " ", () => {
-                if (window.role === -1) {
+                if (window.view.role === -1) {
                     window.view.currTime = i * timeButtonGap;
                     tacticBoard.setTime(window.view.currTime);
                     console.log("Updating time buttons from coach to:", window.view.currTime)
@@ -275,35 +267,6 @@ export const init = async model => {
         tacticBoard.identity().scale(.9, .9, .0001).opacity(0);
         fieldMap.identity().move(-0.45, -0.045, 0.0002).scale(.70, .76, .0001).opacity(0.2);
 
-
-        // update the color of each time button based on the player and time frame selected in the player board
-        updateTimeButtonInPlayerBoard = () => {
-            let currBoard = boardBase._children[0];
-            let currPlayer = window.view.playerList[currPlayerIndex];
-            let startIndex = 0;
-            let endIndex = 0;
-
-            for (let j = 0; j < numTimeButtons; j++) {
-                let startFrame = startIndex < currPlayer.startFrameList.length ? currPlayer.startFrameList[startIndex] : -1;
-                let endFrame = endIndex < currPlayer.endFrameList.length ? currPlayer.endFrameList[startIndex] : -1;
-                let withinRange = false;
-                let startFrame_buttonIndx = Math.floor(startFrame / timeButtonGap);
-                let endFrame_buttonIndx = Math.floor(endFrame / timeButtonGap);
-                if (j === startFrame_buttonIndx || (startFrame_buttonIndx < j && j < endFrame_buttonIndx)) {
-                    withinRange = true;
-                } else if (j === endFrame_buttonIndx) {
-                    withinRange = true;
-                    startIndex += 1
-                    endIndex += 1;
-                }
-
-                if (currPlayerIndex !== -1 && withinRange) {
-                    currBoard.timeButton[j].updateColor(COLORS[currPlayerIndex]);
-                } else {
-                    currBoard.timeButton[j].updateColor('#a0aaba');
-                }
-            }
-        }
 
         // create player boards
         playerBoard = boardBase.add('cube').texture(() => {
@@ -354,6 +317,37 @@ export const init = async model => {
         playerBoard.drawMode = false;
         playerBoard.path = [];
         playerBoard.drawGap = numTimeFrames / NUM_POINTS_ON_BOARD;
+        playerBoard.isTacticBoard = false;
+
+        playerBoard.setTimeButtons = () => {
+            if (currPlayerIndex !== -1){
+                let currPlayer = window.view.playerList[currPlayerIndex];
+                let startIndex = 0;
+                let endIndex = 0;
+
+                for (let j = 0; j < numTimeButtons; j++) {
+                    let startFrame = startIndex < currPlayer.startFrameList.length ? currPlayer.startFrameList[startIndex] : -1;
+                    let endFrame = endIndex < currPlayer.endFrameList.length ? currPlayer.endFrameList[startIndex] : -1;
+                    let withinRange = false;
+                    let startFrame_buttonIndx = Math.floor(startFrame / timeButtonGap);
+                    let endFrame_buttonIndx = Math.floor(endFrame / timeButtonGap);
+                    if (j === startFrame_buttonIndx || (startFrame_buttonIndx < j && j < endFrame_buttonIndx)) {
+                        withinRange = true;
+                    } else if (j === endFrame_buttonIndx) {
+                        withinRange = true;
+                        startIndex += 1
+                        endIndex += 1;
+                    }
+
+                    if (currPlayerIndex !== -1 && withinRange) {
+                        playerBoard.timeButton[j].updateColor(COLORS[currPlayerIndex]);
+                    } else {
+                        playerBoard.timeButton[j].updateColor('#a0aaba');
+                    }
+                }
+            }
+
+        }
 
         playerBoard.identity().scale(.9, .9, .0001).opacity(0);
 
@@ -376,7 +370,7 @@ export const init = async model => {
 
                         playerBoard.startEditingMovement = false;
                     }
-                    updateTimeButtonInPlayerBoard()
+                    playerBoard.setTimeButtons()
                 }
             }, 0.36));
         }
@@ -391,6 +385,7 @@ export const init = async model => {
         }, 0.9);
 
         g2.addWidget(playerBoard, 'button', .6, .78, '#d965bb', "ADD", () => {
+            if (window.view.role !== -1) return;
             playerBoard.startEditingMovement = true
             playerBoard.drawMode = false;
             playerBoard.path = [];
@@ -398,6 +393,7 @@ export const init = async model => {
 
 // Add delete button to delete the last interval
         g2.addWidget(playerBoard, 'button', .8, .78, '#7064e0', "DELETE", () => {
+            if (window.view.role !== -1) return;
             let currPlayer = window.view.playerList[playerBoard.ID];
             if (currPlayer.startFrameList.length === currPlayer.endFrameList.length && currPlayer.startFrameList.length >= 0) {
                 currPlayer.startFrameList.pop();
@@ -410,7 +406,7 @@ export const init = async model => {
                 } else {
                     currPlayer.resetPosAndDirect();
                 }
-                updateTimeButtonInPlayerBoard();
+                playerBoard.setTimeButtons();
             }
         }, 0.6)
 
@@ -472,7 +468,7 @@ export const init = async model => {
 
 
     model.animate(() => {
-        if (window.startInit) {
+        if (window.view.startInit) {
             boardBase.identity().boardHud().scale(1.3);
 
             // console.log("viewMatrix")
@@ -493,6 +489,8 @@ export const init = async model => {
                     tacticBoard.visible = true;
                 }
                 tacticBoard.setTime(window.view.currTime);
+                playerBoard.setTimeButtons();
+
             } else if (boardBase._children.length > 0) {
                 boardBase._children[0].visible = false;
                 boardBase._children = [];
@@ -503,6 +501,9 @@ export const init = async model => {
                 window.view.playerList[i].update(window.view.currTime)
             }
 
+            if (localViewIndex !== -1) {
+                switchLocalView(localViewIndex);
+            }
             movementPlayHandler();
         }
     });
