@@ -6,6 +6,7 @@ import {buttonState, joyStickState, viewMatrix} from "../render/core/controllerI
 import {COLORS, MAX_TIME} from "./const.js";
 import {gltfRoot} from "../global.js";
 import {quat} from "../render/math/gl-matrix.js";
+import {savePreset, loadPresets} from "../util/presetLoader.js";
 
 // Total time for the tatic is 24s
 const TOTAL_TIME = 24;
@@ -23,6 +24,9 @@ let delta_time = 0;
 let last_time = 0;
 let isPlaying = false;
 let isPausing = true;
+let showPresetUI = false;
+let presetUILock = false;
+let showLoadsUI = false;
 
 // The frame gap between 2 time buttons.
 let timeButtonGap = numTimeFrames / numTimeButtons;
@@ -33,10 +37,24 @@ let hudButtonHandler = () => {
     if (buttonState.right[1] && buttonState.right[1].pressed && !hudButtonLock) {
         HUDIsShown = !HUDIsShown;
         hudButtonLock = true;
+        showPresetUI = false; // both UIs cant exist at the same time
+        showLoadsUI = false; // both UIs cant exist at the same time
     }
 
     if (buttonState.right[1] && !buttonState.right[1].pressed) {
         hudButtonLock = false;
+    }
+}
+
+let presetUIHandler = () => {
+    if (buttonState.left[1] && buttonState.left[1].pressed && !presetUILock) {
+        showPresetUI = !showPresetUI;
+        presetUILock = true;
+        HUDIsShown = false; // both UIs cant exist at the same time
+    }
+
+    if (buttonState.left[1] && !buttonState.left[1].pressed) {
+        presetUILock = false;
     }
 }
 
@@ -454,10 +472,57 @@ export const init = async model => {
         }
     }
 
+    let presetSaveLoadBoard = model.add('cube').texture(() => {
+        g2.drawWidgets(presetSaveLoadBoard);
+    });
+
+    let presetLoaderBoard = model.add('cube').texture(() => {
+        g2.drawWidgets(presetLoaderBoard);
+    });
+    
+
+    let fillLoadsUI = () => {
+        let presetCounter = 0;
+        var presets = loadPresets();
+        for(let z=0; z<presets.length; z++){
+            presetCounter = z+1;
+            g2.addWidget(presetLoaderBoard, 'button', .5, .1 + z * .12, COLORS[0], "Preset #"+presetCounter, () => {
+                let preset = presets[z];
+                for(let i=0; i<5; i++){
+                    playerList[i].directions = structuredClone(preset.players[i].directions);
+                    playerList[i].positions = structuredClone(preset.players[i].positions);
+                    playerList[i].startTimeList = structuredClone(preset.players[i].startTimeList);
+                    playerList[i].endTimeList = structuredClone(preset.players[i].endTimeList);
+                }
+                console.log("preset load completed");
+                showLoadsUI = false;
+                showPresetUI = false;
+            }, 0.9);
+        };
+        g2.addWidget(presetLoaderBoard, 'button', .5, .1 + presetCounter * .12, COLORS[0], "Exit Loader", () => {
+            showLoadsUI = false;
+            showPresetUI = false;
+        }, 0.9);
+    }
+    
+
+    g2.addWidget(presetSaveLoadBoard, 'button', .5, .12, COLORS[0], 'Save Tactic', () => {
+        savePreset(playerList);
+        console.log("Input saved");
+        showPresetUI = false;
+    }, 0.9);
+
+    g2.addWidget(presetSaveLoadBoard, 'button', .5, .26, COLORS[1], 'Load Tactics', () => {
+        showLoadsUI = true;
+        showPresetUI = false;
+
+        fillLoadsUI();
+    }, 0.9);
+
+
+
     model.animate(() => {
         boardBase.identity().boardHud().scale(1.3);
-
-
         // console.log("viewMatrix")
         // console.log(getMatrixXYZ(viewMatrix[0]))
         // console.log(viewMatrix)
@@ -468,6 +533,23 @@ export const init = async model => {
             // current board is player board
             drawButtonHandler();
             changeDirection()
+        }
+
+        presetUIHandler();
+        if(showPresetUI){
+            presetSaveLoadBoard.identity().hud().scale([.6, .6, .0001]);
+            presetSaveLoadBoard.visible = true;
+        } else {
+            presetSaveLoadBoard.identity().hud().scale(0.00001);
+            presetSaveLoadBoard.visible = false;
+        }
+
+        if(showLoadsUI){
+            presetLoaderBoard.identity().hud().scale([.6, .6, .0001]);
+            presetLoaderBoard.visible = true;
+        } else {
+            presetLoaderBoard.identity().hud().scale(0.00001);
+            presetLoaderBoard.visible = false;
         }
 
         if (HUDIsShown) {
